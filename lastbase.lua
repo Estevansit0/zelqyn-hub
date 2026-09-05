@@ -32,4 +32,5 @@ return {
     { Name = "Tralalero" },
     { Name = "Crystal" },
     { Name = "Bee Emperor" },
+    { Name = "Honey Bee" },
 }
