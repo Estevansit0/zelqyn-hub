@@ -24,12 +24,17 @@ local UiLib = {
         textMuted = Color3.fromRGB(137, 128, 187),
         inputBg = Color3.fromRGB(3, 1, 20),
         success = Color3.fromRGB(176, 255, 194),
+        warning = Color3.fromRGB(255, 202, 92),
         danger = Color3.fromRGB(255, 142, 157),
+        info = Color3.fromRGB(92, 207, 255),
         tweenFast = TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
         tweenMed = TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        tweenSnap = TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        tweenSpring = TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
         toggleW = 40,
         toggleH = 20,
         knobSz = 16,
+        rippleAsset = "rbxassetid://266543268",
     },
     Active = nil,
 }
@@ -105,6 +110,89 @@ local function hover(self, target, button, normalColor, hoverColor)
     end)
 end
 
+local function gloss(parent, strength)
+    local amount = strength or 0.12
+    return create("UIGradient", {
+        Rotation = 90,
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+            ColorSequenceKeypoint.new(0.48, Color3.new(0.97, 0.97, 1)),
+            ColorSequenceKeypoint.new(1, Color3.new(1 - amount, 1 - amount, 1)),
+        }),
+    }, parent)
+end
+
+local function ripple(self, button, radius)
+    local host = create("Frame", {
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        ZIndex = button.ZIndex,
+    }, button)
+    corner(host, UDim.new(0, radius or 7))
+    connect(self, button.MouseButton1Down, function(x, y)
+        local absolute = button.AbsolutePosition
+        local size = button.AbsoluteSize
+        local localX = math.clamp((x or absolute.X + size.X / 2) - absolute.X, 0, size.X)
+        local localY = math.clamp((y or absolute.Y + size.Y / 2) - absolute.Y, 0, size.Y)
+        local diameter = math.max(size.X, size.Y) * 2.2
+        local circle = create("ImageLabel", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.new(0, localX, 0, localY),
+            Size = UDim2.new(),
+            BackgroundTransparency = 1,
+            Image = Theme.rippleAsset,
+            ImageColor3 = Theme.accentCyan,
+            ImageTransparency = 0.68,
+            ZIndex = button.ZIndex + 1,
+        }, host)
+        local animation = TweenService:Create(circle, TweenInfo.new(0.42, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, diameter, 0, diameter),
+            ImageTransparency = 1,
+        })
+        animation:Play()
+        animation.Completed:Connect(function()
+            if circle.Parent then circle:Destroy() end
+        end)
+    end)
+end
+
+local function shine(self, target, host)
+    local layer = create("Frame", {
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Color3.new(1, 1, 1),
+        BorderSizePixel = 0,
+        BackgroundTransparency = 0,
+        ZIndex = math.max(target.ZIndex - 1, 1),
+    }, host or target)
+    corner(layer, UDim.new(0, 7))
+    local gradient = create("UIGradient", {
+        Rotation = 18,
+        Offset = Vector2.new(-1, 0),
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 1),
+            NumberSequenceKeypoint.new(0.42, 1),
+            NumberSequenceKeypoint.new(0.5, 0.82),
+            NumberSequenceKeypoint.new(0.58, 1),
+            NumberSequenceKeypoint.new(1, 1),
+        }),
+    }, layer)
+    local playing = false
+    local function play()
+        if playing or not layer.Parent then return end
+        playing = true
+        gradient.Offset = Vector2.new(-1, 0)
+        local animation = TweenService:Create(gradient, TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Offset = Vector2.new(1, 0),
+        })
+        animation:Play()
+        animation.Completed:Connect(function() playing = false end)
+    end
+    connect(self, target.MouseEnter, play)
+    return play
+end
+
 local function makeCard(parent, height, order)
     local card = create("Frame", {
         Size = UDim2.new(1, 0, 0, height or 34),
@@ -114,7 +202,7 @@ local function makeCard(parent, height, order)
     }, parent)
     corner(card)
     stroke(card, Theme.accentDim, 1)
-    surface(card, 8)
+    gloss(card, 0.12)
     return card
 end
 
@@ -133,6 +221,57 @@ local function makeText(parent, text, properties)
     return create("TextLabel", values, parent)
 end
 
+local function escapeRichText(value)
+    return tostring(value or "")
+        :gsub("&", "&amp;")
+        :gsub("<", "&lt;")
+        :gsub(">", "&gt;")
+end
+
+local function colorHex(color)
+    return string.format(
+        "%02X%02X%02X",
+        math.floor(color.R * 255 + 0.5),
+        math.floor(color.G * 255 + 0.5),
+        math.floor(color.B * 255 + 0.5)
+    )
+end
+
+local function logColor(message)
+    local lower = tostring(message or ""):lower()
+    if lower:find("error", 1, true)
+        or lower:find("failed", 1, true)
+        or lower:find("malformed", 1, true)
+        or lower:find("unavailable", 1, true)
+    then
+        return Theme.danger
+    end
+    if lower:find("cancel", 1, true)
+        or lower:find("waiting", 1, true)
+        or lower:find("nothing pending", 1, true)
+    then
+        return Theme.warning
+    end
+    if lower:find("detected", 1, true)
+        or lower:find("scanned", 1, true)
+        or lower:find("question", 1, true)
+        or lower:find("queued", 1, true)
+    then
+        return Theme.info
+    end
+    if lower:find("answer", 1, true)
+        or lower:find("redeemed", 1, true)
+        or lower:find("loaded", 1, true)
+        or lower:find("ready", 1, true)
+        or lower:find("enabled", 1, true)
+        or lower:find("sent", 1, true)
+        or lower:find("captured", 1, true)
+    then
+        return Theme.success
+    end
+    return Theme.textPri
+end
+
 local function makeButton(self, parent, options)
     local card = makeCard(parent, options.Height or 34, options.Order)
     if options.Size then card.Size = options.Size end
@@ -140,23 +279,69 @@ local function makeButton(self, parent, options)
     if options.Color then card.BackgroundColor3 = options.Color end
     local button = create("TextButton", {
         Size = UDim2.new(1, 0, 1, 0),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
         BackgroundTransparency = 1,
         AutoButtonColor = false,
         Font = options.Bold and Enum.Font.GothamBold or Enum.Font.Gotham,
         TextSize = options.TextSize or 12,
         TextColor3 = options.TextColor or Theme.textPri,
         Text = options.Text or "",
+        ZIndex = 3,
     }, card)
+    local buttonScale = create("UIScale", {}, button)
+    local underline = create("Frame", {
+        AnchorPoint = Vector2.new(0.5, 1),
+        Position = UDim2.new(0.5, 0, 1, -1),
+        Size = UDim2.new(0, 0, 0, 2),
+        BackgroundColor3 = Theme.accentCyan,
+        BorderSizePixel = 0,
+        ZIndex = 4,
+    }, card)
+    corner(underline, UDim.new(1, 0))
+    surface(underline, 0)
+    local outline = card:FindFirstChildOfClass("UIStroke")
+    local playShine = shine(self, button, card)
+    ripple(self, button, 7)
+    local restColor = options.Color or Theme.bg2
+    connect(self, button.MouseEnter, function()
+        TweenService:Create(card, Theme.tweenFast, { BackgroundColor3 = Theme.hover }):Play()
+        TweenService:Create(button, Theme.tweenFast, { TextColor3 = Theme.accentCyan }):Play()
+        TweenService:Create(buttonScale, Theme.tweenFast, { Scale = 1.02 }):Play()
+        TweenService:Create(underline, Theme.tweenSpring, { Size = UDim2.new(0.52, 0, 0, 2) }):Play()
+        if outline then TweenService:Create(outline, Theme.tweenFast, { Transparency = 0.06 }):Play() end
+    end)
+    connect(self, button.MouseLeave, function()
+        TweenService:Create(card, Theme.tweenFast, { BackgroundColor3 = restColor }):Play()
+        TweenService:Create(button, Theme.tweenFast, { TextColor3 = options.TextColor or Theme.textPri }):Play()
+        TweenService:Create(buttonScale, Theme.tweenFast, { Scale = 1 }):Play()
+        TweenService:Create(underline, Theme.tweenFast, { Size = UDim2.new(0, 0, 0, 2) }):Play()
+        if outline then TweenService:Create(outline, Theme.tweenFast, { Transparency = 0.38 }):Play() end
+    end)
+    connect(self, button.MouseButton1Down, function()
+        TweenService:Create(buttonScale, Theme.tweenSnap, { Scale = 0.96 }):Play()
+    end)
+    connect(self, button.MouseButton1Up, function()
+        TweenService:Create(buttonScale, Theme.tweenSpring, { Scale = 1.02 }):Play()
+        playShine()
+    end)
     if options.Callback then
         connect(self, button.Activated, function() emit(self, options.Callback) end)
     end
-    hover(self, card, button, options.Color or Theme.bg2)
     return { Frame = card, Button = button }
 end
 
 local function setToggle(control, enabled, instant)
     control.Value = enabled == true
-    control.Gradient.Enabled = control.Value
+    control.Gradient.Color = control.Value
+        and ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Theme.accentCyan),
+            ColorSequenceKeypoint.new(1, Theme.accentSec),
+        })
+        or ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(82, 72, 135)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(38, 28, 82)),
+        })
     local goalTrack = { BackgroundColor3 = control.Value and Theme.toggleOn or Theme.toggleOff }
     local goalKnob = {
         Position = control.Value
@@ -166,14 +351,24 @@ local function setToggle(control, enabled, instant)
     if instant then
         control.Track.BackgroundColor3 = goalTrack.BackgroundColor3
         control.Knob.Position = goalKnob.Position
+        control.KnobScale.Scale = 1
+        control.Outline.Color = control.Value and Theme.accentCyan or Theme.accentDim
+        control.Outline.Transparency = control.Value and 0.12 or 0.38
     else
         TweenService:Create(control.Track, Theme.tweenFast, goalTrack):Play()
-        TweenService:Create(control.Knob, Theme.tweenFast, goalKnob):Play()
+        TweenService:Create(control.Knob, Theme.tweenSpring, goalKnob):Play()
+        TweenService:Create(control.Outline, Theme.tweenMed, {
+            Color = control.Value and Theme.accentCyan or Theme.accentDim,
+            Transparency = control.Value and 0.12 or 0.38,
+        }):Play()
+        control.KnobScale.Scale = control.Value and 1.16 or 0.88
+        TweenService:Create(control.KnobScale, Theme.tweenSpring, { Scale = 1 }):Play()
     end
 end
 
 local function makeToggle(self, parent, options)
     local card = makeCard(parent, 34, options.Order)
+    local outline = card:FindFirstChildOfClass("UIStroke")
     makeText(card, options.Text, { Size = UDim2.new(1, -72, 1, 0) })
     local track = create("Frame", {
         AnchorPoint = Vector2.new(1, 0.5),
@@ -183,27 +378,44 @@ local function makeToggle(self, parent, options)
         BorderSizePixel = 0,
     }, card)
     corner(track, UDim.new(1, 0))
-    local gradient = create("UIGradient", {
-        Color = ColorSequence.new(Theme.accentCyan, Theme.accentSec),
-    }, track)
+    local gradient = create("UIGradient", { Rotation = 15 }, track)
     local knob = create("Frame", {
         Size = UDim2.new(0, Theme.knobSz, 0, Theme.knobSz),
         BackgroundColor3 = Theme.knob,
         BorderSizePixel = 0,
     }, track)
     corner(knob, UDim.new(1, 0))
+    gloss(knob, 0.2)
+    local knobScale = create("UIScale", {}, knob)
     local button = create("TextButton", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundTransparency = 1,
+        AutoButtonColor = false,
         Text = "",
+        ZIndex = 3,
     }, card)
-    local control = { Frame = card, Track = track, Knob = knob, Gradient = gradient }
+    ripple(self, button, 7)
+    local control = {
+        Frame = card,
+        Track = track,
+        Knob = knob,
+        Gradient = gradient,
+        KnobScale = knobScale,
+        Outline = outline,
+    }
     setToggle(control, options.Value, true)
     connect(self, button.Activated, function()
         setToggle(control, not control.Value, false)
         emit(self, options.Callback, control.Value)
     end)
-    hover(self, card, button)
+    connect(self, button.MouseEnter, function()
+        TweenService:Create(card, Theme.tweenFast, { BackgroundColor3 = Theme.hover }):Play()
+        TweenService:Create(knobScale, Theme.tweenFast, { Scale = 1.06 }):Play()
+    end)
+    connect(self, button.MouseLeave, function()
+        TweenService:Create(card, Theme.tweenFast, { BackgroundColor3 = Theme.bg2 }):Play()
+        TweenService:Create(knobScale, Theme.tweenFast, { Scale = 1 }):Play()
+    end)
     control.Set = function(_, value, instant) setToggle(control, value, instant) end
     return control
 end
@@ -964,11 +1176,24 @@ end
 
 function Controller:Log(entry)
     if not self.View.LogScroll then return end
-    local label = makeText(self.View.LogScroll, tostring(entry or ""), {
+    local raw = tostring(entry or "")
+    local timestamp, message = raw:match("^(%[[^%]]+%])%s*(.*)$")
+    timestamp = timestamp or "[--:--:--]"
+    message = message or raw
+    local formatted = string.format(
+        '<font color="#%s">%s</font> <font color="#%s">%s</font>',
+        colorHex(Theme.textMuted),
+        escapeRichText(timestamp),
+        colorHex(logColor(message)),
+        escapeRichText(message)
+    )
+    local label = makeText(self.View.LogScroll, formatted, {
         Size = UDim2.new(1, -8, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
         Position = UDim2.new(), Font = Enum.Font.Code, TextSize = 10,
-        TextColor3 = Theme.textPri, TextWrapped = true, RichText = false,
+        TextColor3 = Theme.textPri, TextWrapped = true, RichText = true,
     })
+    label.TextTransparency = 1
+    TweenService:Create(label, Theme.tweenFast, { TextTransparency = 0 }):Play()
     table.insert(self.LogLabels, label)
     if #self.LogLabels > self.MaxLogEntries then
         local oldest = table.remove(self.LogLabels, 1)
