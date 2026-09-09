@@ -457,7 +457,11 @@ end
 local function makeDropdown(self, parent, options)
     local card = makeCard(parent, 34, options.Order)
     card.ZIndex = 20
-    makeText(card, options.Text, { Size = UDim2.new(1, -154, 1, 0), ZIndex = 21 })
+    makeText(card, options.Text, {
+        Size = UDim2.new(1, -154, 0, 34),
+        Position = UDim2.new(0, 12, 0, 0),
+        ZIndex = 21,
+    })
     local head = create("TextButton", {
         AnchorPoint = Vector2.new(1, 0),
         Position = UDim2.new(1, -10, 0, 7),
