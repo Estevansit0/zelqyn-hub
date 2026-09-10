@@ -420,18 +420,45 @@ local function makeToggle(self, parent, options)
     return control
 end
 
+local function clipInput(self, box)
+    box.ClipsDescendants = true
+    box.RichText = false
+    box.TextScaled = false
+    box.TextTruncate = Enum.TextTruncate.AtEnd
+    connect(self, box.Focused, function()
+        box.TextTruncate = Enum.TextTruncate.None
+    end)
+    connect(self, box.FocusLost, function()
+        box.TextTruncate = Enum.TextTruncate.AtEnd
+    end)
+end
+
 local function makeInput(self, parent, options)
-    local card = makeCard(parent, options.Height or 34, options.Order)
+    local stacked = options.Stacked == true
+    local inputWidth = options.InputWidth or 40
+    local card = makeCard(parent, options.Height or (stacked and 62 or 34), options.Order)
     makeText(card, options.Text, {
-        Size = UDim2.new(1, -(options.InputWidth or 52) - 28, 1, 0),
+        Size = stacked and UDim2.new(1, -24, 0, 26) or UDim2.new(1, -inputWidth - 32, 1, 0),
+        TextTruncate = Enum.TextTruncate.AtEnd,
     })
-    local box = create("TextBox", {
-        AnchorPoint = Vector2.new(1, 0.5),
-        Position = UDim2.new(1, -10, 0.5, 0),
-        Size = UDim2.new(0, options.InputWidth or 40, 0, Theme.toggleH),
+    local field = create("Frame", {
+        AnchorPoint = stacked and Vector2.new() or Vector2.new(1, 0.5),
+        Position = stacked and UDim2.new(0, 10, 0, 28) or UDim2.new(1, -10, 0.5, 0),
+        Size = stacked and UDim2.new(1, -20, 0, 26) or UDim2.new(0, inputWidth, 0, Theme.toggleH),
         BackgroundColor3 = Theme.inputBg,
         BorderSizePixel = 0,
+        ClipsDescendants = true,
+    }, card)
+    corner(field, UDim.new(0, 5))
+    local outline = stroke(field, Theme.accentDim, 1, 0)
+    local box = create("TextBox", {
+        Position = UDim2.new(0, 6, 0, 0),
+        Size = UDim2.new(1, -12, 1, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
         ClearTextOnFocus = false,
+        MultiLine = false,
+        TextWrapped = false,
         Font = Enum.Font.GothamBold,
         TextSize = options.TextSize or 11,
         TextColor3 = Theme.textPri,
@@ -439,9 +466,8 @@ local function makeInput(self, parent, options)
         PlaceholderColor3 = Theme.textMuted,
         TextXAlignment = options.Align or Enum.TextXAlignment.Center,
         Text = tostring(options.Value or ""),
-    }, card)
-    corner(box, UDim.new(0, 5))
-    local outline = stroke(box, Theme.accentDim, 1, 0)
+    }, field)
+    clipInput(self, box)
     connect(self, box.Focused, function()
         TweenService:Create(outline, Theme.tweenFast, { Color = Theme.accent }):Play()
     end)
@@ -455,30 +481,30 @@ local function makeInput(self, parent, options)
 end
 
 local function makeDropdown(self, parent, options)
-    local card = makeCard(parent, 34, options.Order)
+    local card = makeCard(parent, 62, options.Order)
     card.ZIndex = 20
     makeText(card, options.Text, {
-        Size = UDim2.new(1, -154, 0, 34),
+        Size = UDim2.new(1, -24, 0, 26),
         Position = UDim2.new(0, 12, 0, 0),
+        TextTruncate = Enum.TextTruncate.AtEnd,
         ZIndex = 21,
     })
     local head = create("TextButton", {
-        AnchorPoint = Vector2.new(1, 0),
-        Position = UDim2.new(1, -10, 0, 7),
-        Size = UDim2.new(0, options.Width or 124, 0, Theme.toggleH),
+        Position = UDim2.new(0, 10, 0, 28),
+        Size = UDim2.new(1, -20, 0, 26),
         BackgroundColor3 = Theme.inputBg,
         AutoButtonColor = false,
         Font = Enum.Font.GothamBold,
         TextSize = 10,
         TextColor3 = options.TextColor or Theme.accentSec,
+        TextTruncate = Enum.TextTruncate.AtEnd,
         ZIndex = 23,
     }, card)
     corner(head, UDim.new(0, 5))
     stroke(head, Theme.accentDim, 1)
     local menu = create("Frame", {
-        AnchorPoint = Vector2.new(1, 0),
-        Position = UDim2.new(1, -10, 0, 34),
-        Size = UDim2.new(0, options.Width or 124, 0, #options.Items * 25),
+        Position = UDim2.new(0, 10, 0, 62),
+        Size = UDim2.new(1, -20, 0, #options.Items * 30 - 4),
         BackgroundTransparency = 1,
         Visible = false,
         ZIndex = 40,
@@ -492,8 +518,13 @@ local function makeDropdown(self, parent, options)
     end
     function control:SetOpen(open)
         self.Open = open == true
+        if self.Open then
+            for _, other in ipairs(self.Owner.Dropdowns) do
+                if other ~= self and other.Open then other:SetOpen(false) end
+            end
+        end
         self.Menu.Visible = self.Open
-        self.Frame.Size = UDim2.new(1, 0, 0, self.Open and 40 + #options.Items * 25 or 34)
+        self.Frame.Size = UDim2.new(1, 0, 0, self.Open and 66 + #options.Items * 30 or 62)
         self.Button.Text = display(self.Value) .. (self.Open and "  ^" or "  v")
     end
     function control:Set(value)
@@ -502,14 +533,15 @@ local function makeDropdown(self, parent, options)
     end
     for index, item in ipairs(options.Items) do
         local option = create("TextButton", {
-            Size = UDim2.new(1, 0, 0, 22),
-            Position = UDim2.new(0, 0, 0, (index - 1) * 25),
+            Size = UDim2.new(1, 0, 0, 26),
+            Position = UDim2.new(0, 0, 0, (index - 1) * 30),
             BackgroundColor3 = Theme.inputBg,
             BorderSizePixel = 0,
             Font = Enum.Font.GothamBold,
             TextSize = 10,
             TextColor3 = Theme.textPri,
             Text = item.Text,
+            TextTruncate = Enum.TextTruncate.AtEnd,
             ZIndex = 41,
         }, menu)
         corner(option, UDim.new(0, 5))
@@ -521,6 +553,7 @@ local function makeDropdown(self, parent, options)
     end
     connect(self, head.Activated, function() control:SetOpen(not control.Open) end)
     hover(self, head, head, Theme.inputBg)
+    control.Owner = self
     control:SetOpen(false)
     table.insert(self.Dropdowns, control)
     return control
@@ -792,7 +825,7 @@ local function buildWindow(self)
         corner(indicator, UDim.new(1, 0))
         view.TabButtons[index] = button
         view.Indicators[index] = indicator
-        view.Pages[index] = makePage(view.Content, index == 1)
+        view.Pages[index] = makePage(view.Content, index == 1 or index == 3)
         connect(self, button.Activated, function() self:SetTab(index) end)
         connect(self, button.MouseEnter, function()
             if self.ActiveTab ~= index then TweenService:Create(button, Theme.tweenFast, { BackgroundColor3 = Theme.hover }):Play() end
@@ -1011,6 +1044,7 @@ local function buildRules(self)
         local slot = create("Frame", {
             Size = UDim2.new(1, 0, 0, 22), BackgroundColor3 = Theme.inputBg,
             BackgroundTransparency = 0.2, BorderSizePixel = 0, LayoutOrder = index,
+            ClipsDescendants = true,
         }, scroll)
         corner(slot, UDim.new(0, 4))
         local outline = stroke(slot, Theme.accentDim, 1, 0)
@@ -1026,6 +1060,7 @@ local function buildRules(self)
             PlaceholderText = "keyword " .. index, PlaceholderColor3 = Theme.textMuted,
             TextXAlignment = Enum.TextXAlignment.Left, Text = (self.Options.Keywords or {})[index] or "",
         }, slot)
+        clipInput(self, box)
         connect(self, box.Focused, function()
             TweenService:Create(outline, Theme.tweenFast, { Color = Theme.accent }):Play()
         end)
@@ -1053,7 +1088,7 @@ local function buildAI(self)
     })
     self.Controls.AITriggers = makeInput(self, page, {
         Text = "AI Triggers", Value = table.concat(self.State.AITriggers, ", "),
-        Placeholder = "Question, riddle", InputWidth = 122, Align = Enum.TextXAlignment.Left,
+        Placeholder = "Question, riddle", Stacked = true, Align = Enum.TextXAlignment.Left,
         Order = 3, Callback = "AITriggersChanged",
     })
     self.Controls.MinCharacters = makeInput(self, page, {
@@ -1111,6 +1146,7 @@ end
 local function buildSender(self)
     local page = self.View.Pages[5]
     local inputCard = makeCard(page, 94, 1)
+    inputCard.ClipsDescendants = true
     makeText(inputCard, "Notification Message", {
         Size = UDim2.new(1, -20, 0, 24), Position = UDim2.new(0, 10, 0, 3),
         Font = Enum.Font.GothamBold, TextSize = 11, TextColor3 = Theme.accentSec,
@@ -1123,6 +1159,7 @@ local function buildSender(self)
         Text = "", TextColor3 = Theme.textPri, TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top,
     }, inputCard)
+    clipInput(self, self.View.SenderBox)
     corner(self.View.SenderBox, UDim.new(0, 5))
     stroke(self.View.SenderBox, Theme.accentDim, 1, 0)
     local send = makeButton(self, page, {
