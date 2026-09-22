@@ -5,24 +5,25 @@ local RunService = cloneref(game:GetService("RunService"))
 local UiLib = {
     Name = "Zelqyn Hub",
     IsTouch = UserInputService.TouchEnabled,
+    DesktopVertical = not UserInputService.TouchEnabled,
     Theme = {
-        bg0 = Color3.fromRGB(2, 0, 16),
-        bg1 = Color3.fromRGB(7, 3, 31),
-        bg2 = Color3.fromRGB(16, 8, 57),
-        bg3 = Color3.fromRGB(5, 2, 25),
-        hover = Color3.fromRGB(39, 17, 103),
-        accent = Color3.fromRGB(119, 47, 255),
-        accentDim = Color3.fromRGB(48, 23, 123),
-        accentSec = Color3.fromRGB(241, 30, 219),
-        accentCyan = Color3.fromRGB(0, 207, 255),
-        accentBlue = Color3.fromRGB(48, 82, 255),
+        bg0 = Color3.fromRGB(3, 2, 15),
+        bg1 = Color3.fromRGB(7, 4, 24),
+        bg2 = Color3.fromRGB(15, 9, 42),
+        bg3 = Color3.fromRGB(5, 3, 20),
+        hover = Color3.fromRGB(35, 18, 86),
+        accent = Color3.fromRGB(125, 43, 255),
+        accentDim = Color3.fromRGB(52, 27, 124),
+        accentSec = Color3.fromRGB(226, 24, 220),
+        accentCyan = Color3.fromRGB(17, 190, 255),
+        accentBlue = Color3.fromRGB(49, 47, 255),
         activeTabText = Color3.fromRGB(249, 248, 255),
         toggleOff = Color3.fromRGB(31, 24, 70),
         toggleOn = Color3.fromRGB(180, 29, 246),
         knob = Color3.fromRGB(236, 248, 255),
         textPri = Color3.fromRGB(242, 242, 255),
-        textMuted = Color3.fromRGB(137, 128, 187),
-        inputBg = Color3.fromRGB(3, 1, 20),
+        textMuted = Color3.fromRGB(151, 143, 194),
+        inputBg = Color3.fromRGB(4, 2, 17),
         success = Color3.fromRGB(176, 255, 194),
         warning = Color3.fromRGB(255, 202, 92),
         danger = Color3.fromRGB(255, 142, 157),
@@ -35,6 +36,10 @@ local UiLib = {
         toggleH = 20,
         knobSz = 16,
         rippleAsset = "rbxassetid://266543268",
+        backgroundAsset = "rbxassetid://0",
+        desktopWidth = 336,
+        desktopHeight = 520,
+        mobileWidth = 310,
     },
     Active = nil,
 }
@@ -197,6 +202,7 @@ local function makeCard(parent, height, order)
     local card = create("Frame", {
         Size = UDim2.new(1, 0, 0, height or 34),
         BackgroundColor3 = Theme.bg2,
+        BackgroundTransparency = 0.1,
         BorderSizePixel = 0,
         LayoutOrder = order or 0,
     }, parent)
@@ -588,6 +594,22 @@ local TabData = {
     { "AA", "ADMIN ABUSE", 240 },
 }
 
+local function expandedSize(self, index)
+    if self.VerticalLayout then
+        return UDim2.new(0, Theme.desktopWidth, 0, Theme.desktopHeight)
+    end
+    return UDim2.new(0, Theme.mobileWidth, 0, TabData[index or self.ActiveTab][3])
+end
+
+local function collapsedSize(self)
+    return UDim2.new(
+        0,
+        self.VerticalLayout and Theme.desktopWidth or Theme.mobileWidth,
+        0,
+        self.VerticalLayout and 46 or 42
+    )
+end
+
 local function makePage(parent, scrolling)
     local page = create(scrolling and "ScrollingFrame" or "Frame", {
         Size = UDim2.new(1, 0, 1, 0),
@@ -617,6 +639,7 @@ end
 
 local function buildWindow(self)
     local view = self.View
+    local headerHeight = self.VerticalLayout and 46 or 42
     local old = gethui():FindFirstChild("zelqynhubAutoCode")
     if old then old:Destroy() end
 
@@ -626,7 +649,7 @@ local function buildWindow(self)
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
     }, gethui())
     view.Window = create("Frame", {
-        Size = UDim2.new(0, 310, 0, 327),
+        Size = expandedSize(self, self.Options.ActiveTab or 1),
         Position = self.Options.Position or UDim2.new(0.5, -120, 0.5, -120),
         BackgroundColor3 = Theme.bg1,
         BackgroundTransparency = 0.02,
@@ -636,6 +659,7 @@ local function buildWindow(self)
     }, view.Gui)
     corner(view.Window, UDim.new(0, 12))
     stroke(view.Window, Theme.accentDim, 1)
+    view.Scale = create("UIScale", { Scale = 0.94 }, view.Window)
     create("UIGradient", {
         Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0, Color3.fromRGB(12, 7, 54)),
@@ -644,6 +668,30 @@ local function buildWindow(self)
         }),
         Rotation = 125,
     }, view.Window)
+    view.Background = create("ImageLabel", {
+        Name = "ZelqynBackground",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Image = Theme.backgroundAsset,
+        ImageTransparency = 0.18,
+        ScaleType = Enum.ScaleType.Crop,
+        ZIndex = 1,
+    }, view.Window)
+    corner(view.Background, UDim.new(0, 12))
+    create("UIGradient", {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(80, 102, 255)),
+            ColorSequenceKeypoint.new(0.48, Color3.fromRGB(255, 255, 255)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(237, 54, 255)),
+        }),
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.48),
+            NumberSequenceKeypoint.new(0.5, 0.18),
+            NumberSequenceKeypoint.new(1, 0.42),
+        }),
+        Rotation = 135,
+    }, view.Background)
 
     local glowStroke = create("UIStroke", {
         Color = Theme.accentSec,
@@ -686,11 +734,12 @@ local function buildWindow(self)
     view.Aura.Parent = auraStroke
 
     view.Header = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 42),
+        Size = UDim2.new(1, 0, 0, headerHeight),
         BackgroundColor3 = Theme.bg0,
         BorderSizePixel = 0,
         Active = true,
         Selectable = true,
+        ZIndex = 2,
     }, view.Window)
     create("UIGradient", {
         Color = ColorSequence.new({
@@ -773,51 +822,56 @@ local function buildWindow(self)
     surface(view.Minimize, 15)
 
     view.Nav = create("Frame", {
-        Position = UDim2.new(0, 0, 0, 42),
-        Size = UDim2.new(0, 64, 1, -42),
+        Position = self.VerticalLayout and UDim2.new(0, 0, 0, headerHeight) or UDim2.new(0, 0, 0, headerHeight),
+        Size = self.VerticalLayout and UDim2.new(1, 0, 0, 38) or UDim2.new(0, 64, 1, -headerHeight),
         BackgroundColor3 = Theme.bg0,
-        BackgroundTransparency = 0.18,
+        BackgroundTransparency = self.VerticalLayout and 0.08 or 0.18,
         BorderSizePixel = 0,
+        ZIndex = 2,
     }, view.Window)
     surface(view.Nav, 90)
     create("UIPadding", {
         PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6),
-        PaddingTop = UDim.new(0, 6), PaddingBottom = UDim.new(0, 6),
+        PaddingTop = UDim.new(0, 5), PaddingBottom = UDim.new(0, 5),
     }, view.Nav)
     create("UIListLayout", {
-        Padding = UDim.new(0, 3), SortOrder = Enum.SortOrder.LayoutOrder,
+        FillDirection = self.VerticalLayout and Enum.FillDirection.Horizontal or Enum.FillDirection.Vertical,
+        Padding = UDim.new(0, self.VerticalLayout and 2 or 3), SortOrder = Enum.SortOrder.LayoutOrder,
         HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
     }, view.Nav)
     view.Divider = create("Frame", {
-        Size = UDim2.new(0, 1, 1, -42),
-        Position = UDim2.new(0, 64, 0, 42),
+        Size = self.VerticalLayout and UDim2.new(1, 0, 0, 1) or UDim2.new(0, 1, 1, -headerHeight),
+        Position = self.VerticalLayout and UDim2.new(0, 0, 0, headerHeight + 38) or UDim2.new(0, 64, 0, headerHeight),
         BackgroundColor3 = Theme.accentDim,
         BackgroundTransparency = 0.45,
         BorderSizePixel = 0,
+        ZIndex = 2,
     }, view.Window)
     view.Content = create("Frame", {
-        Position = UDim2.new(0, 65, 0, 42),
-        Size = UDim2.new(1, -65, 1, -42),
+        Position = self.VerticalLayout and UDim2.new(0, 0, 0, headerHeight + 39) or UDim2.new(0, 65, 0, headerHeight),
+        Size = self.VerticalLayout and UDim2.new(1, 0, 1, -(headerHeight + 39)) or UDim2.new(1, -65, 1, -headerHeight),
         BackgroundTransparency = 1,
+        ZIndex = 2,
     }, view.Window)
     for index, tab in ipairs(TabData) do
         local button = create("TextButton", {
-            Size = UDim2.new(1, 0, 0, 28),
+            Size = self.VerticalLayout and UDim2.new(1 / #TabData, -4, 0, 28) or UDim2.new(1, 0, 0, 28),
             LayoutOrder = index,
             BackgroundColor3 = Theme.bg0,
             BorderSizePixel = 0,
             AutoButtonColor = false,
             Font = Enum.Font.GothamBold,
-            TextSize = 10,
+            TextSize = self.VerticalLayout and 9 or 10,
             TextColor3 = Theme.textMuted,
             Text = tab[1],
         }, view.Nav)
         corner(button)
         surface(button, 12)
         local indicator = create("Frame", {
-            AnchorPoint = Vector2.new(0, 0.5),
-            Position = UDim2.new(0, 0, 0.5, 0),
-            Size = UDim2.new(0, 2, 0, 18),
+            AnchorPoint = self.VerticalLayout and Vector2.new(0.5, 1) or Vector2.new(0, 0.5),
+            Position = self.VerticalLayout and UDim2.new(0.5, 0, 1, 0) or UDim2.new(0, 0, 0.5, 0),
+            Size = self.VerticalLayout and UDim2.new(0.62, 0, 0, 2) or UDim2.new(0, 2, 0, 18),
             BackgroundColor3 = Theme.accentSec,
             BorderSizePixel = 0,
             Visible = false,
@@ -862,7 +916,7 @@ function Controller:SetTab(index, instant)
     end
     self.View.Mode.Text = TabData[index][2]
     if not self.Minimized then
-        local size = UDim2.new(0, 310, 0, TabData[index][3])
+        local size = expandedSize(self, index)
         if instant then self.View.Window.Size = size else TweenService:Create(self.View.Window, Theme.tweenMed, { Size = size }):Play() end
     end
     if not instant then emit(self, "TabChanged", index) end
@@ -874,8 +928,7 @@ function Controller:SetMinimized(value, instant)
     self.View.Divider.Visible = not self.Minimized
     self.View.Content.Visible = not self.Minimized
     self.View.Minimize.Text = self.Minimized and "+" or "-"
-    local height = self.Minimized and 42 or TabData[self.ActiveTab][3]
-    local size = UDim2.new(0, 310, 0, height)
+    local size = self.Minimized and collapsedSize(self) or expandedSize(self, self.ActiveTab)
     if instant then self.View.Window.Size = size else TweenService:Create(self.View.Window, Theme.tweenMed, { Size = size }):Play() end
     if not instant then emit(self, "MinimizedChanged", self.Minimized) end
 end
@@ -1279,6 +1332,7 @@ function UiLib.CreateRedeemer(options)
         MaxLogEntries = (options and options.MaxLogEntries) or (UiLib.IsTouch and 80 or 140),
         View = { Pages = {}, TabButtons = {}, Indicators = {} },
         ActiveTab = 1,
+        VerticalLayout = UiLib.DesktopVertical,
         Minimized = false,
         WaitingForKey = false,
         KeyCode = (options and options.KeyCode) or Enum.KeyCode.F6,
@@ -1297,6 +1351,7 @@ function UiLib.CreateRedeemer(options)
     self:SetMinimized(self.Options.Minimized, true)
     self.View.Window.Position = self:Clamp(self.View.Window.Position)
     for _, entry in ipairs(self.Options.Logs or {}) do self:Log(entry) end
+    TweenService:Create(self.View.Scale, Theme.tweenSpring, { Scale = 1 }):Play()
     return self
 end
 
