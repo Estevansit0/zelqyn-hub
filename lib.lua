@@ -37,9 +37,9 @@ local UiLib = {
         knobSz = 16,
         rippleAsset = "rbxassetid://266543268",
         backgroundAsset = "rbxassetid://130379359123488",
-        desktopWidth = 356,
-        desktopHeight = 560,
-        mobileWidth = 310,
+        desktopWidth = 390,
+        desktopHeight = 610,
+        mobileWidth = 346,
     },
     Active = nil,
 }
@@ -610,16 +610,22 @@ local TabData = {
 }
 
 local function expandedSize(self, index)
+    local viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize
+        or Vector2.new(1920, 1080)
+    local availableWidth = math.max(220, viewport.X - 20)
+    local availableHeight = math.max(160, viewport.Y - 20)
     if self.VerticalLayout then
-        return UDim2.new(0, Theme.desktopWidth, 0, Theme.desktopHeight)
+        return UDim2.new(0, math.min(Theme.desktopWidth, availableWidth), 0, math.min(Theme.desktopHeight, availableHeight))
     end
-    return UDim2.new(0, Theme.mobileWidth, 0, TabData[index or self.ActiveTab][3])
+    return UDim2.new(0, math.min(Theme.mobileWidth, availableWidth), 0, math.min(TabData[index or self.ActiveTab][3], availableHeight))
 end
 
 local function collapsedSize(self)
+    local viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize
+        or Vector2.new(1920, 1080)
     return UDim2.new(
         0,
-        self.VerticalLayout and Theme.desktopWidth or Theme.mobileWidth,
+        math.min(self.VerticalLayout and Theme.desktopWidth or Theme.mobileWidth, math.max(220, viewport.X - 20)),
         0,
         self.VerticalLayout and 48 or 42
     )
@@ -921,7 +927,7 @@ local function buildWindow(self)
         corner(indicator, UDim.new(1, 0))
         view.TabButtons[index] = button
         view.Indicators[index] = indicator
-        view.Pages[index] = makePage(view.Content, index == 1 or index == 3, self.VerticalLayout)
+        view.Pages[index] = makePage(view.Content, index ~= 4, self.VerticalLayout)
         connect(self, button.Activated, function() self:SetTab(index) end)
         connect(self, button.MouseEnter, function()
             if self.ActiveTab ~= index then TweenService:Create(button, Theme.tweenFast, { BackgroundColor3 = Theme.hover }):Play() end
@@ -1000,10 +1006,18 @@ local function wireWindow(self)
     end)
     if workspace.CurrentCamera then
         connect(self, workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"), function()
-            if self.View.Window.Parent then self.View.Window.Position = self:Clamp(self.View.Window.Position) end
+            if self.View.Window.Parent then
+                self.View.Window.Size = self.Minimized and collapsedSize(self) or expandedSize(self, self.ActiveTab)
+                self.View.Window.Position = self:Clamp(self.View.Window.Position)
+            end
         end)
     end
-    connect(self, RunService.RenderStepped, function()
+    local animationElapsed = 0
+    connect(self, RunService.Heartbeat, function(delta)
+        if not self.View.Gui.Enabled then return end
+        animationElapsed += delta
+        if animationElapsed < (UiLib.IsTouch and 0.09 or 0.05) then return end
+        animationElapsed = 0
         local now = os.clock()
         local rotation = (now * 85.7142857) % 360
         self.View.Glow.Rotation = rotation
@@ -1026,12 +1040,13 @@ local function buildHome(self)
     }, statusCard)
     corner(statusDot, UDim.new(1, 0))
     surface(statusDot, 0)
-    makeText(statusCard, "READY  ·  CODE REDEEMER ONLINE", {
+    self.View.ScanStatus = makeText(statusCard, "READY  ·  CODE REDEEMER ONLINE", {
         Size = UDim2.new(1, -38, 1, 0),
         Position = UDim2.new(0, 29, 0, 0),
         Font = Enum.Font.GothamBold,
         TextSize = self.VerticalLayout and 11 or 9,
         TextColor3 = Theme.textMuted,
+        TextTruncate = Enum.TextTruncate.AtEnd,
     })
     local actions = create("Frame", {
         Size = UDim2.new(1, 0, 0, self.VerticalLayout and 82 or 74),
@@ -1137,7 +1152,7 @@ end
 local function buildRules(self)
     local page = self.View.Pages[2]
     local card = makeCard(page, 147, 1)
-    makeText(card, "Triggers  (blank = all)", { Size = UDim2.new(1, -24, 0, 34) })
+    makeText(card, "Normal triggers  (blank = none)", { Size = UDim2.new(1, -24, 0, 34) })
     create("Frame", {
         Size = UDim2.new(1, -16, 0, 1), Position = UDim2.new(0, 8, 0, 34),
         BackgroundColor3 = Theme.accentDim, BorderSizePixel = 0,
@@ -1313,6 +1328,12 @@ function Controller:SetLastMessage(text)
     if self.View.LastMessage then self.View.LastMessage.Text = tostring(text or "") end
 end
 
+function Controller:SetScanStatus(text, color)
+    if not self.View.ScanStatus then return end
+    self.View.ScanStatus.Text = tostring(text or "READY")
+    self.View.ScanStatus.TextColor3 = color or Theme.textMuted
+end
+
 function Controller:SetAAStates(anchorEnabled, purchaseEnabled)
     if self.Controls.Anchor then self.Controls.Anchor:Set(anchorEnabled, false) end
     if self.Controls.AutoPurchase then self.Controls.AutoPurchase:Set(purchaseEnabled, false) end
@@ -1350,14 +1371,19 @@ function Controller:Log(entry)
         Position = UDim2.new(), Font = Enum.Font.Code, TextSize = 10,
         TextColor3 = Theme.textPri, TextWrapped = true, RichText = true,
     })
-    label.TextTransparency = 1
-    TweenService:Create(label, Theme.tweenFast, { TextTransparency = 0 }):Play()
+    if not UiLib.IsTouch then
+        label.TextTransparency = 1
+        TweenService:Create(label, Theme.tweenFast, { TextTransparency = 0 }):Play()
+    end
     table.insert(self.LogLabels, label)
     if #self.LogLabels > self.MaxLogEntries then
         local oldest = table.remove(self.LogLabels, 1)
         if oldest and oldest.Parent then oldest:Destroy() end
     end
+    if self.LogScrollPending then return end
+    self.LogScrollPending = true
     task.defer(function()
+        self.LogScrollPending = false
         if self.View.LogScroll and self.View.LogScroll.Parent then
             self.View.LogScroll.CanvasPosition = Vector2.new(0, math.huge)
         end
