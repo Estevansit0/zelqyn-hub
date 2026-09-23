@@ -1,3 +1,4 @@
+--v1
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
 local RunService = cloneref(game:GetService("RunService"))
@@ -7,11 +8,11 @@ local UiLib = {
     IsTouch = UserInputService.TouchEnabled,
     DesktopVertical = not UserInputService.TouchEnabled,
     Theme = {
-        bg0 = Color3.fromRGB(3, 2, 13),
-        bg1 = Color3.fromRGB(7, 4, 22),
-        bg2 = Color3.fromRGB(13, 8, 32),
-        bg3 = Color3.fromRGB(5, 3, 17),
-        hover = Color3.fromRGB(31, 16, 72),
+        bg0 = Color3.fromRGB(5, 4, 17),
+        bg1 = Color3.fromRGB(9, 6, 26),
+        bg2 = Color3.fromRGB(20, 13, 43),
+        bg3 = Color3.fromRGB(11, 7, 27),
+        hover = Color3.fromRGB(38, 22, 80),
         accent = Color3.fromRGB(117, 39, 255),
         accentDim = Color3.fromRGB(55, 29, 124),
         accentSec = Color3.fromRGB(229, 31, 218),
@@ -38,8 +39,9 @@ local UiLib = {
         rippleAsset = "rbxassetid://266543268",
         backgroundAsset = "rbxassetid://130379359123488",
         desktopWidth = 390,
-        desktopHeight = 610,
+        desktopHeight = 620,
         mobileWidth = 346,
+        mobileMaxHeight = 500,
     },
     Active = nil,
 }
@@ -200,7 +202,7 @@ end
 
 local function makeCard(parent, height, order)
     local card = create("Frame", {
-        Size = UDim2.new(1, 0, 0, height or 34),
+        Size = UDim2.new(1, 0, 0, height or 44),
         BackgroundColor3 = Theme.bg2,
         BackgroundTransparency = 0.04,
         BorderSizePixel = 0,
@@ -218,7 +220,7 @@ local function makeText(parent, text, properties)
         Position = UDim2.new(0, 12, 0, 0),
         BackgroundTransparency = 1,
         Font = Enum.Font.Gotham,
-        TextSize = 12,
+        TextSize = 13,
         TextColor3 = Theme.textPri,
         TextXAlignment = Enum.TextXAlignment.Left,
         Text = text or "",
@@ -279,7 +281,7 @@ local function logColor(message)
 end
 
 local function makeButton(self, parent, options)
-    local card = makeCard(parent, options.Height or (self.VerticalLayout and 38 or 34), options.Order)
+    local card = makeCard(parent, options.Height or 44, options.Order)
     if options.Size then card.Size = options.Size end
     if options.Position then card.Position = options.Position end
     if options.Color then card.BackgroundColor3 = options.Color end
@@ -290,7 +292,7 @@ local function makeButton(self, parent, options)
         BackgroundTransparency = 1,
         AutoButtonColor = false,
         Font = options.Bold and Enum.Font.GothamBlack or Enum.Font.GothamBold,
-        TextSize = options.TextSize or (self.VerticalLayout and 12 or 11),
+        TextSize = options.TextSize or 13,
         TextColor3 = options.TextColor or Theme.textPri,
         Text = options.Text or "",
         ZIndex = 3,
@@ -375,12 +377,12 @@ local function setToggle(control, enabled, instant)
 end
 
 local function makeToggle(self, parent, options)
-    local card = makeCard(parent, self.VerticalLayout and 38 or 34, options.Order)
+    local card = makeCard(parent, 44, options.Order)
     local outline = card:FindFirstChildOfClass("UIStroke")
-    makeText(card, options.Text, {
+    makeText(card, string.upper(tostring(options.Text or "")), {
         Size = UDim2.new(1, -72, 1, 0),
         Font = Enum.Font.GothamBold,
-        TextSize = self.VerticalLayout and 12 or 11,
+        TextSize = 13,
     })
     local track = create("Frame", {
         AnchorPoint = Vector2.new(1, 0.5),
@@ -448,17 +450,17 @@ end
 local function makeInput(self, parent, options)
     local stacked = options.Stacked == true
     local inputWidth = options.InputWidth or 40
-    local card = makeCard(parent, options.Height or (stacked and (self.VerticalLayout and 68 or 62) or (self.VerticalLayout and 38 or 34)), options.Order)
-    makeText(card, options.Text, {
-        Size = stacked and UDim2.new(1, -24, 0, self.VerticalLayout and 30 or 26) or UDim2.new(1, -inputWidth - 32, 1, 0),
+    local card = makeCard(parent, options.Height or (stacked and 78 or 44), options.Order)
+    makeText(card, string.upper(tostring(options.Text or "")), {
+        Size = stacked and UDim2.new(1, -24, 0, 32) or UDim2.new(1, -inputWidth - 32, 1, 0),
         TextTruncate = Enum.TextTruncate.AtEnd,
         Font = Enum.Font.GothamBold,
-        TextSize = self.VerticalLayout and 12 or 11,
+        TextSize = 13,
     })
     local field = create("Frame", {
         AnchorPoint = stacked and Vector2.new() or Vector2.new(1, 0.5),
-        Position = stacked and UDim2.new(0, 10, 0, self.VerticalLayout and 32 or 28) or UDim2.new(1, -10, 0.5, 0),
-        Size = stacked and UDim2.new(1, -20, 0, self.VerticalLayout and 28 or 26) or UDim2.new(0, inputWidth, 0, self.VerticalLayout and 22 or Theme.toggleH),
+        Position = stacked and UDim2.new(0, 10, 0, 36) or UDim2.new(1, -10, 0.5, 0),
+        Size = stacked and UDim2.new(1, -20, 0, 34) or UDim2.new(0, inputWidth, 0, 30),
         BackgroundColor3 = Theme.inputBg,
         BorderSizePixel = 0,
         ClipsDescendants = true,
@@ -474,7 +476,7 @@ local function makeInput(self, parent, options)
         MultiLine = false,
         TextWrapped = false,
         Font = Enum.Font.GothamBold,
-        TextSize = options.TextSize or (self.VerticalLayout and 12 or 11),
+        TextSize = options.TextSize or 13,
         TextColor3 = Theme.textPri,
         PlaceholderText = options.Placeholder or "",
         PlaceholderColor3 = Theme.textMuted,
@@ -495,16 +497,16 @@ local function makeInput(self, parent, options)
 end
 
 local function makeDropdown(self, parent, options)
-    local baseHeight = self.VerticalLayout and 68 or 62
-    local labelHeight = self.VerticalLayout and 30 or 26
-    local headY = self.VerticalLayout and 32 or 28
-    local headHeight = self.VerticalLayout and 28 or 26
-    local menuY = self.VerticalLayout and 68 or 62
-    local optionStep = self.VerticalLayout and 34 or 30
-    local optionHeight = self.VerticalLayout and 30 or 26
+    local baseHeight = 74
+    local labelHeight = 32
+    local headY = 35
+    local headHeight = 32
+    local menuY = 74
+    local optionStep = 38
+    local optionHeight = 34
     local card = makeCard(parent, baseHeight, options.Order)
     card.ZIndex = 20
-    makeText(card, options.Text, {
+    makeText(card, string.upper(tostring(options.Text or "")), {
         Size = UDim2.new(1, -24, 0, labelHeight),
         Position = UDim2.new(0, 12, 0, 0),
         TextTruncate = Enum.TextTruncate.AtEnd,
@@ -516,7 +518,7 @@ local function makeDropdown(self, parent, options)
         BackgroundColor3 = Theme.inputBg,
         AutoButtonColor = false,
         Font = Enum.Font.GothamBold,
-        TextSize = self.VerticalLayout and 12 or 10,
+        TextSize = 13,
         TextColor3 = options.TextColor or Theme.accentSec,
         TextTruncate = Enum.TextTruncate.AtEnd,
         ZIndex = 23,
@@ -559,7 +561,7 @@ local function makeDropdown(self, parent, options)
             BackgroundColor3 = Theme.inputBg,
             BorderSizePixel = 0,
             Font = Enum.Font.GothamBold,
-            TextSize = self.VerticalLayout and 12 or 10,
+            TextSize = 13,
             TextColor3 = Theme.textPri,
             Text = item.Text,
             TextTruncate = Enum.TextTruncate.AtEnd,
@@ -581,18 +583,18 @@ local function makeDropdown(self, parent, options)
 end
 
 local function makeParagraph(parent, title, body, height, order)
-    local card = makeCard(parent, height or 58, order)
-    makeText(card, title, {
-        Size = UDim2.new(1, -24, 0, 20),
-        Position = UDim2.new(0, 12, 0, 6),
+    local card = makeCard(parent, height or 74, order)
+    makeText(card, string.upper(tostring(title or "")), {
+        Size = UDim2.new(1, -24, 0, 22),
+        Position = UDim2.new(0, 12, 0, 8),
         Font = Enum.Font.GothamBold,
-        TextSize = 12,
+        TextSize = 14,
         TextColor3 = Theme.accentSec,
     })
     makeText(card, body, {
-        Size = UDim2.new(1, -24, 1, -30),
-        Position = UDim2.new(0, 12, 0, 27),
-        TextSize = 9,
+        Size = UDim2.new(1, -24, 1, -36),
+        Position = UDim2.new(0, 12, 0, 32),
+        TextSize = 12,
         TextColor3 = Theme.textMuted,
         TextWrapped = true,
         TextYAlignment = Enum.TextYAlignment.Top,
@@ -601,12 +603,12 @@ local function makeParagraph(parent, title, body, height, order)
 end
 
 local TabData = {
-    { "HOME", "CODE REDEEMER", 327 },
-    { "RULES", "TRIGGER MATRIX", 240 },
-    { "AI", "AI ENGINE", 357 },
-    { "LOG", "ACTIVITY LOG", 240 },
-    { "SENDER", "TEST SENDER", 240 },
-    { "AA", "ADMIN ABUSE", 240 },
+    { "HOME", "CODE REDEEMER", 610, 620 },
+    { "RULES", "TRIGGER MATRIX", 330, 340 },
+    { "AI", "AI ENGINE", 520, 530 },
+    { "LOG", "ACTIVITY LOG", 450, 470 },
+    { "SENDER", "TEST SENDER", 345, 355 },
+    { "AA", "ADMIN ABUSE", 350, 360 },
 }
 
 local function expandedSize(self, index)
@@ -615,9 +617,9 @@ local function expandedSize(self, index)
     local availableWidth = math.max(220, viewport.X - 20)
     local availableHeight = math.max(160, viewport.Y - 20)
     if self.VerticalLayout then
-        return UDim2.new(0, math.min(Theme.desktopWidth, availableWidth), 0, math.min(Theme.desktopHeight, availableHeight))
+        return UDim2.new(0, math.min(Theme.desktopWidth, availableWidth), 0, math.min(TabData[index or self.ActiveTab][4], availableHeight))
     end
-    return UDim2.new(0, math.min(Theme.mobileWidth, availableWidth), 0, math.min(TabData[index or self.ActiveTab][3], availableHeight))
+    return UDim2.new(0, math.min(Theme.mobileWidth, availableWidth), 0, math.min(TabData[index or self.ActiveTab][3], Theme.mobileMaxHeight, availableHeight))
 end
 
 local function collapsedSize(self)
@@ -627,7 +629,7 @@ local function collapsedSize(self)
         0,
         math.min(self.VerticalLayout and Theme.desktopWidth or Theme.mobileWidth, math.max(220, viewport.X - 20)),
         0,
-        self.VerticalLayout and 48 or 42
+        self.VerticalLayout and 50 or 48
     )
 end
 
@@ -660,8 +662,8 @@ end
 
 local function buildWindow(self)
     local view = self.View
-    local headerHeight = self.VerticalLayout and 48 or 42
-    local navHeight = self.VerticalLayout and 42 or 0
+    local headerHeight = self.VerticalLayout and 50 or 48
+    local navHeight = 44
     local old = gethui():FindFirstChild("zelqynhubAutoCode")
     if old then old:Destroy() end
 
@@ -676,7 +678,7 @@ local function buildWindow(self)
             0.5,
             -(self.VerticalLayout and Theme.desktopWidth or Theme.mobileWidth) / 2,
             0.5,
-            -(self.VerticalLayout and Theme.desktopHeight or TabData[self.Options.ActiveTab or 1][3]) / 2
+            -(self.VerticalLayout and TabData[self.Options.ActiveTab or 1][4] or TabData[self.Options.ActiveTab or 1][3]) / 2
         ),
         BackgroundColor3 = Theme.bg1,
         BackgroundTransparency = 0.02,
@@ -810,27 +812,27 @@ local function buildWindow(self)
     stroke(mark, Theme.accentSec, 1)
     surface(mark, 25)
     local title = makeText(view.Header, string.upper(UiLib.Name), {
-        Size = UDim2.new(0, 166, 0, 18),
-        Position = UDim2.new(0, 47, 0, 6),
+        Size = UDim2.new(0, 190, 0, 21),
+        Position = UDim2.new(0, 49, 0, 5),
         Font = Enum.Font.GothamBlack,
-        TextSize = 14,
+        TextSize = 16,
     })
     surface(title, 0)
     view.Mode = makeText(view.Header, "CODE REDEEMER", {
-        Size = UDim2.new(0, 166, 0, 13),
-        Position = UDim2.new(0, 47, 0, 25),
+        Size = UDim2.new(0, 190, 0, 15),
+        Position = UDim2.new(0, 49, 0, 28),
         Font = Enum.Font.GothamMedium,
-        TextSize = 9,
+        TextSize = 11,
         TextColor3 = Theme.textMuted,
     })
     local ready = makeText(view.Header, "READY", {
-        Size = UDim2.new(0, 44, 0, 19),
+        Size = UDim2.new(0, 50, 0, 22),
         AnchorPoint = Vector2.new(1, 0.5),
         Position = UDim2.new(1, -43, 0.5, 0),
         BackgroundTransparency = 0,
         BackgroundColor3 = Theme.bg2,
         Font = Enum.Font.GothamBold,
-        TextSize = 9,
+        TextSize = 11,
         TextColor3 = Theme.accentCyan,
         TextXAlignment = Enum.TextXAlignment.Center,
     })
@@ -870,56 +872,58 @@ local function buildWindow(self)
 
     view.Nav = create("Frame", {
         Position = UDim2.new(0, 0, 0, headerHeight),
-        Size = self.VerticalLayout and UDim2.new(1, 0, 0, navHeight) or UDim2.new(0, 64, 1, -headerHeight),
+        Size = UDim2.new(1, 0, 0, navHeight),
         BackgroundColor3 = Theme.bg0,
-        BackgroundTransparency = self.VerticalLayout and 0.08 or 0.18,
+        BackgroundTransparency = 0.08,
         BorderSizePixel = 0,
         ZIndex = 2,
     }, view.Window)
     surface(view.Nav, 90)
     create("UIPadding", {
         PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6),
-        PaddingTop = UDim.new(0, self.VerticalLayout and 6 or 5), PaddingBottom = UDim.new(0, self.VerticalLayout and 6 or 5),
+        PaddingTop = UDim.new(0, 6), PaddingBottom = UDim.new(0, 6),
     }, view.Nav)
     create("UIListLayout", {
-        FillDirection = self.VerticalLayout and Enum.FillDirection.Horizontal or Enum.FillDirection.Vertical,
-        Padding = UDim.new(0, self.VerticalLayout and 2 or 3), SortOrder = Enum.SortOrder.LayoutOrder,
+        FillDirection = Enum.FillDirection.Horizontal,
+        Padding = UDim.new(0, 3), SortOrder = Enum.SortOrder.LayoutOrder,
         HorizontalAlignment = Enum.HorizontalAlignment.Center,
         VerticalAlignment = Enum.VerticalAlignment.Center,
     }, view.Nav)
     view.Divider = create("Frame", {
-        Size = self.VerticalLayout and UDim2.new(1, 0, 0, 1) or UDim2.new(0, 1, 1, -headerHeight),
-        Position = self.VerticalLayout and UDim2.new(0, 0, 0, headerHeight + navHeight) or UDim2.new(0, 64, 0, headerHeight),
+        Size = UDim2.new(1, 0, 0, 1),
+        Position = UDim2.new(0, 0, 0, headerHeight + navHeight),
         BackgroundColor3 = Theme.accentDim,
         BackgroundTransparency = 0.45,
         BorderSizePixel = 0,
         ZIndex = 2,
     }, view.Window)
     view.Content = create("Frame", {
-        Position = self.VerticalLayout and UDim2.new(0, 0, 0, headerHeight + navHeight + 1) or UDim2.new(0, 65, 0, headerHeight),
-        Size = self.VerticalLayout and UDim2.new(1, 0, 1, -(headerHeight + navHeight + 1)) or UDim2.new(1, -65, 1, -headerHeight),
+        Position = UDim2.new(0, 0, 0, headerHeight + navHeight + 1),
+        Size = UDim2.new(1, 0, 1, -(headerHeight + navHeight + 1)),
         BackgroundTransparency = 1,
         ZIndex = 2,
     }, view.Window)
     for index, tab in ipairs(TabData) do
         local button = create("TextButton", {
-            Size = self.VerticalLayout and UDim2.new(1 / #TabData, -4, 0, 30) or UDim2.new(1, 0, 0, 28),
+            Size = UDim2.new(1 / #TabData, -5, 0, 32),
             LayoutOrder = index,
             BackgroundColor3 = Theme.bg0,
             BorderSizePixel = 0,
             AutoButtonColor = false,
             Font = Enum.Font.GothamBold,
-            TextSize = self.VerticalLayout and 10 or 10,
+            TextSize = 12,
+            TextScaled = true,
             TextColor3 = Theme.textMuted,
             Text = tab[1],
         }, view.Nav)
+        create("UITextSizeConstraint", { MinTextSize = 9, MaxTextSize = 12 }, button)
         corner(button)
         stroke(button, Theme.accentDim, 1, 0.58)
         surface(button, 12)
         local indicator = create("Frame", {
-            AnchorPoint = self.VerticalLayout and Vector2.new(0.5, 1) or Vector2.new(0, 0.5),
-            Position = self.VerticalLayout and UDim2.new(0.5, 0, 1, 0) or UDim2.new(0, 0, 0.5, 0),
-            Size = self.VerticalLayout and UDim2.new(0.62, 0, 0, 2) or UDim2.new(0, 2, 0, 18),
+            AnchorPoint = Vector2.new(0.5, 1),
+            Position = UDim2.new(0.5, 0, 1, 0),
+            Size = UDim2.new(0.62, 0, 0, 2),
             BackgroundColor3 = Theme.accentSec,
             BorderSizePixel = 0,
             Visible = false,
@@ -965,7 +969,16 @@ function Controller:SetTab(index, instant)
     self.View.Mode.Text = TabData[index][2]
     if not self.Minimized then
         local size = expandedSize(self, index)
-        if instant then self.View.Window.Size = size else TweenService:Create(self.View.Window, Theme.tweenMed, { Size = size }):Play() end
+        if instant then
+            self.View.Window.Size = size
+            self.View.Window.Position = self:Clamp(self.View.Window.Position)
+        else
+            local resize = TweenService:Create(self.View.Window, Theme.tweenMed, { Size = size })
+            resize.Completed:Connect(function()
+                if not self.Destroyed then self.View.Window.Position = self:Clamp(self.View.Window.Position) end
+            end)
+            resize:Play()
+        end
     end
     if not instant then emit(self, "TabChanged", index) end
 end
@@ -977,7 +990,16 @@ function Controller:SetMinimized(value, instant)
     self.View.Content.Visible = not self.Minimized
     self.View.Minimize.Text = self.Minimized and "+" or "-"
     local size = self.Minimized and collapsedSize(self) or expandedSize(self, self.ActiveTab)
-    if instant then self.View.Window.Size = size else TweenService:Create(self.View.Window, Theme.tweenMed, { Size = size }):Play() end
+    if instant then
+        self.View.Window.Size = size
+        self.View.Window.Position = self:Clamp(self.View.Window.Position)
+    else
+        local resize = TweenService:Create(self.View.Window, Theme.tweenMed, { Size = size })
+        resize.Completed:Connect(function()
+            if not self.Destroyed then self.View.Window.Position = self:Clamp(self.View.Window.Position) end
+        end)
+        resize:Play()
+    end
     if not instant then emit(self, "MinimizedChanged", self.Minimized) end
 end
 
@@ -1015,7 +1037,7 @@ local function wireWindow(self)
     local animationElapsed = 0
     connect(self, RunService.Heartbeat, function(delta)
         if not self.View.Gui.Enabled then return end
-        animationElapsed += delta
+        animationElapsed = animationElapsed + delta
         if animationElapsed < (UiLib.IsTouch and 0.09 or 0.05) then return end
         animationElapsed = 0
         local now = os.clock()
@@ -1031,7 +1053,7 @@ end
 
 local function buildHome(self)
     local page = self.View.Pages[1]
-    local statusCard = makeCard(page, self.VerticalLayout and 34 or 30, 1)
+    local statusCard = makeCard(page, 40, 1)
     local statusDot = create("Frame", {
         Size = UDim2.new(0, 8, 0, 8),
         Position = UDim2.new(0, 13, 0.5, -4),
@@ -1044,17 +1066,17 @@ local function buildHome(self)
         Size = UDim2.new(1, -38, 1, 0),
         Position = UDim2.new(0, 29, 0, 0),
         Font = Enum.Font.GothamBold,
-        TextSize = self.VerticalLayout and 11 or 9,
+        TextSize = 12,
         TextColor3 = Theme.textMuted,
         TextTruncate = Enum.TextTruncate.AtEnd,
     })
     local actions = create("Frame", {
-        Size = UDim2.new(1, 0, 0, self.VerticalLayout and 82 or 74),
+        Size = UDim2.new(1, 0, 0, 96),
         BackgroundTransparency = 1,
         LayoutOrder = 2,
     }, page)
-    local actionHeight = self.VerticalLayout and 38 or 34
-    local actionOffset = self.VerticalLayout and 44 or 40
+    local actionHeight = 44
+    local actionOffset = 52
     makeButton(self, actions, {
         Text = "START SCAN", Callback = "StartScan", TextColor = Theme.accentCyan,
         Size = UDim2.new(0.5, -3, 0, actionHeight), Position = UDim2.new(0, 0, 0, 0),
@@ -1073,12 +1095,12 @@ local function buildHome(self)
         Size = UDim2.new(0.5, -3, 0, actionHeight), Position = UDim2.new(0.5, 3, 0, actionOffset),
     })
 
-    local messageCard = makeCard(page, self.VerticalLayout and 52 or 46, 3)
+    local messageCard = makeCard(page, 64, 3)
     makeText(messageCard, "LAST DETECTED", {
-        Size = UDim2.new(1, -80, 0, 14),
-        Position = UDim2.new(0, 16, 0, 5),
+        Size = UDim2.new(1, -88, 0, 18),
+        Position = UDim2.new(0, 16, 0, 7),
         Font = Enum.Font.GothamBold,
-        TextSize = self.VerticalLayout and 10 or 9,
+        TextSize = 11,
         TextColor3 = Theme.accentSec,
     })
     create("Frame", {
@@ -1086,21 +1108,21 @@ local function buildHome(self)
         BackgroundColor3 = Theme.accent, BorderSizePixel = 0,
     }, messageCard)
     self.View.LastMessage = makeText(messageCard, self.Options.LastMessage ~= "" and self.Options.LastMessage or "Waiting for a notification...", {
-        Size = UDim2.new(1, -28, 0, self.VerticalLayout and 22 or 18),
-        Position = UDim2.new(0, 16, 0, self.VerticalLayout and 23 or 21),
-        TextSize = self.VerticalLayout and 11 or 10,
+        Size = UDim2.new(1, -28, 0, 27),
+        Position = UDim2.new(0, 16, 0, 29),
+        TextSize = 13,
         TextColor3 = Theme.textMuted,
         TextTruncate = Enum.TextTruncate.AtEnd,
     })
     self.View.KeyButton = create("TextButton", {
         AnchorPoint = Vector2.new(1, 0),
         Position = UDim2.new(1, -8, 0, 5),
-        Size = UDim2.new(0, 48, 0, self.VerticalLayout and 19 or 16),
+        Size = UDim2.new(0, 54, 0, 23),
         BackgroundColor3 = Theme.bg2,
         BorderSizePixel = 0,
         AutoButtonColor = false,
         Font = Enum.Font.GothamBold,
-        TextSize = self.VerticalLayout and 10 or 9,
+        TextSize = 11,
         TextColor3 = Theme.accentSec,
         Text = self.KeyCode.Name,
     }, messageCard)
@@ -1151,14 +1173,14 @@ end
 
 local function buildRules(self)
     local page = self.View.Pages[2]
-    local card = makeCard(page, 147, 1)
-    makeText(card, "Normal triggers  (blank = none)", { Size = UDim2.new(1, -24, 0, 34) })
+    local card = makeCard(page, 210, 1)
+    makeText(card, "NORMAL TRIGGERS  ·  BLANK = NONE", { Size = UDim2.new(1, -24, 0, 38), TextSize = 13 })
     create("Frame", {
-        Size = UDim2.new(1, -16, 0, 1), Position = UDim2.new(0, 8, 0, 34),
+        Size = UDim2.new(1, -16, 0, 1), Position = UDim2.new(0, 8, 0, 38),
         BackgroundColor3 = Theme.accentDim, BorderSizePixel = 0,
     }, card)
     local scroll = create("ScrollingFrame", {
-        Size = UDim2.new(1, -8, 0, 100), Position = UDim2.new(0, 4, 0, 39),
+        Size = UDim2.new(1, -8, 0, 158), Position = UDim2.new(0, 4, 0, 44),
         BackgroundColor3 = Theme.bg3, BackgroundTransparency = 0.2,
         BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = Theme.accentSec,
         AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ClipsDescendants = true,
@@ -1174,7 +1196,7 @@ local function buildRules(self)
     }, scroll)
     for index = 1, 10 do
         local slot = create("Frame", {
-            Size = UDim2.new(1, 0, 0, 22), BackgroundColor3 = Theme.inputBg,
+            Size = UDim2.new(1, 0, 0, 30), BackgroundColor3 = Theme.inputBg,
             BackgroundTransparency = 0.2, BorderSizePixel = 0, LayoutOrder = index,
             ClipsDescendants = true,
         }, scroll)
@@ -1182,13 +1204,13 @@ local function buildRules(self)
         local outline = stroke(slot, Theme.accentDim, 1, 0)
         makeText(slot, tostring(index), {
             Size = UDim2.new(0, 14, 1, 0), Position = UDim2.new(0, 4, 0, 0),
-            Font = Enum.Font.GothamBold, TextSize = 9, TextColor3 = Theme.textMuted,
+            Font = Enum.Font.GothamBold, TextSize = 11, TextColor3 = Theme.textMuted,
             TextXAlignment = Enum.TextXAlignment.Center,
         })
         local box = create("TextBox", {
             Size = UDim2.new(1, -22, 1, -4), Position = UDim2.new(0, 20, 0, 2),
             BackgroundTransparency = 1, BorderSizePixel = 0, ClearTextOnFocus = false,
-            Font = Enum.Font.GothamBold, TextSize = 11, TextColor3 = Theme.textPri,
+            Font = Enum.Font.GothamBold, TextSize = 13, TextColor3 = Theme.textPri,
             PlaceholderText = "keyword " .. index, PlaceholderColor3 = Theme.textMuted,
             TextXAlignment = Enum.TextXAlignment.Left, Text = (self.Options.Keywords or {})[index] or "",
         }, slot)
@@ -1235,7 +1257,7 @@ local function buildAI(self)
         page,
         "AI RESPONSE ENGINE",
         "Uses live SAB, Snap and brainrot context for code-ready answers.",
-        64,
+        74,
         6
     )
 end
@@ -1244,7 +1266,7 @@ local function buildLog(self)
     local page = self.View.Pages[4]
     for _, child in ipairs(page:GetChildren()) do child:Destroy() end
     self.View.LogScroll = create("ScrollingFrame", {
-        Size = UDim2.new(1, -20, 1, -54), Position = UDim2.new(0, 10, 0, 10),
+        Size = UDim2.new(1, -20, 1, -62), Position = UDim2.new(0, 10, 0, 10),
         BackgroundColor3 = Theme.bg3, BackgroundTransparency = 0.2,
         BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = Theme.accentCyan,
         AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ClipsDescendants = true,
@@ -1260,9 +1282,9 @@ local function buildLog(self)
         PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4),
     }, self.View.LogScroll)
     local clear = create("TextButton", {
-        Size = UDim2.new(1, -20, 0, 28), Position = UDim2.new(0, 10, 1, -38),
+        Size = UDim2.new(1, -20, 0, 36), Position = UDim2.new(0, 10, 1, -46),
         BackgroundColor3 = Theme.bg2, BorderSizePixel = 0,
-        Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = Theme.textMuted,
+        Font = Enum.Font.GothamBold, TextSize = 13, TextColor3 = Theme.textMuted,
         Text = "Clear Log",
     }, page)
     corner(clear, UDim.new(0, 6))
@@ -1277,16 +1299,16 @@ end
 
 local function buildSender(self)
     local page = self.View.Pages[5]
-    local inputCard = makeCard(page, 94, 1)
+    local inputCard = makeCard(page, 122, 1)
     inputCard.ClipsDescendants = true
-    makeText(inputCard, "Notification Message", {
-        Size = UDim2.new(1, -20, 0, 24), Position = UDim2.new(0, 10, 0, 3),
-        Font = Enum.Font.GothamBold, TextSize = 11, TextColor3 = Theme.accentSec,
+    makeText(inputCard, "NOTIFICATION MESSAGE", {
+        Size = UDim2.new(1, -20, 0, 26), Position = UDim2.new(0, 10, 0, 4),
+        Font = Enum.Font.GothamBold, TextSize = 14, TextColor3 = Theme.accentSec,
     })
     self.View.SenderBox = create("TextBox", {
-        Size = UDim2.new(1, -16, 0, 56), Position = UDim2.new(0, 8, 0, 29),
+        Size = UDim2.new(1, -16, 0, 80), Position = UDim2.new(0, 8, 0, 33),
         BackgroundColor3 = Theme.inputBg, BorderSizePixel = 0, ClearTextOnFocus = false,
-        MultiLine = true, Font = Enum.Font.Gotham, TextSize = 11,
+        MultiLine = true, Font = Enum.Font.Gotham, TextSize = 13,
         PlaceholderText = "Type a notification message...", PlaceholderColor3 = Theme.textMuted,
         Text = "", TextColor3 = Theme.textPri, TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top,
@@ -1302,9 +1324,9 @@ local function buildSender(self)
         local ok, status = emit(self, "SendNotification", message)
         self:SetSenderStatus(status, ok)
     end)
-    self.View.SenderStatus = makeText(makeCard(page, 34, 3), self.State.NotificationReady and "Remote ready" or "Remote unavailable", {
+    self.View.SenderStatus = makeText(makeCard(page, 44, 3), self.State.NotificationReady and "Remote ready" or "Remote unavailable", {
         Size = UDim2.new(1, -20, 1, 0), Position = UDim2.new(0, 10, 0, 0),
-        TextSize = 10, TextColor3 = self.State.NotificationReady and Theme.accentSec or Theme.textMuted,
+        TextSize = 12, TextColor3 = self.State.NotificationReady and Theme.accentSec or Theme.textMuted,
         TextTruncate = Enum.TextTruncate.AtEnd,
     })
 end
@@ -1317,10 +1339,10 @@ local function buildAA(self)
     self.Controls.AutoPurchase = makeToggle(self, page, {
         Text = "Auto Purchase", Value = self.State.AutoPurchase, Order = 2, Callback = "AutoPurchaseChanged",
     })
-    makeParagraph(page, "Admin Abuse", "Purchases the nearest brainrot at 10 studs or less.", 58, 3)
-    self.View.AAStatus = makeText(makeCard(page, 34, 4), "Ready", {
+    makeParagraph(page, "Admin Abuse", "Purchases the nearest brainrot at 10 studs or less.", 74, 3)
+    self.View.AAStatus = makeText(makeCard(page, 44, 4), "Ready", {
         Size = UDim2.new(1, -20, 1, 0), Position = UDim2.new(0, 10, 0, 0),
-        TextSize = 10, TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
+        TextSize = 12, TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
     })
 end
 
@@ -1368,7 +1390,7 @@ function Controller:Log(entry)
     )
     local label = makeText(self.View.LogScroll, formatted, {
         Size = UDim2.new(1, -8, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
-        Position = UDim2.new(), Font = Enum.Font.Code, TextSize = 10,
+        Position = UDim2.new(), Font = Enum.Font.Code, TextSize = 12,
         TextColor3 = Theme.textPri, TextWrapped = true, RichText = true,
     })
     if not UiLib.IsTouch then
@@ -1440,6 +1462,11 @@ function UiLib.CreateRedeemer(options)
     self:SetTab(self.Options.ActiveTab or 1, true)
     self:SetMinimized(self.Options.Minimized, true)
     self.View.Window.Position = self:Clamp(self.View.Window.Position)
+    task.defer(function()
+        if not self.Destroyed and self.View.Window.Parent then
+            self.View.Window.Position = self:Clamp(self.View.Window.Position)
+        end
+    end)
     for _, entry in ipairs(self.Options.Logs or {}) do self:Log(entry) end
     TweenService:Create(self.View.Scale, Theme.tweenSpring, { Scale = 1 }):Play()
     return self
