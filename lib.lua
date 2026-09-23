@@ -1,4 +1,4 @@
---v1
+--v2
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
 local RunService = cloneref(game:GetService("RunService"))
@@ -608,7 +608,7 @@ local TabData = {
     { "AI", "AI ENGINE", 520, 530 },
     { "LOG", "ACTIVITY LOG", 450, 470 },
     { "SENDER", "TEST SENDER", 345, 355 },
-    { "AA", "ADMIN ABUSE", 350, 360 },
+    { "AA", "ADMIN ABUSE", 430, 440 },
 }
 
 local function expandedSize(self, index)
@@ -1339,8 +1339,16 @@ local function buildAA(self)
     self.Controls.AutoPurchase = makeToggle(self, page, {
         Text = "Auto Purchase", Value = self.State.AutoPurchase, Order = 2, Callback = "AutoPurchaseChanged",
     })
-    makeParagraph(page, "Admin Abuse", "Purchases the nearest brainrot at 10 studs or less.", 74, 3)
-    self.View.AAStatus = makeText(makeCard(page, 44, 4), "Ready", {
+    self.Controls.AutoSell = makeToggle(self, page, {
+        Text = "Auto Sell", Value = self.State.AutoSell, Order = 3, Callback = "AutoSellChanged",
+    })
+    makeParagraph(page, "Auto Sell", "Sells only your plot's brainrots with base Generation below Las Tralaleritas. Equal or higher stays safe.", 82, 4)
+    self.View.AASellStatus = makeText(makeCard(page, 44, 5), "Auto Sell disabled", {
+        Size = UDim2.new(1, -20, 1, 0), Position = UDim2.new(0, 10, 0, 0),
+        TextSize = 12, TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
+    })
+    makeParagraph(page, "Auto Purchase", "Purchases the nearest brainrot at 10 studs or less.", 74, 6)
+    self.View.AAStatus = makeText(makeCard(page, 44, 7), "Ready", {
         Size = UDim2.new(1, -20, 1, 0), Position = UDim2.new(0, 10, 0, 0),
         TextSize = 12, TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
     })
@@ -1356,15 +1364,22 @@ function Controller:SetScanStatus(text, color)
     self.View.ScanStatus.TextColor3 = color or Theme.textMuted
 end
 
-function Controller:SetAAStates(anchorEnabled, purchaseEnabled)
+function Controller:SetAAStates(anchorEnabled, purchaseEnabled, sellEnabled)
     if self.Controls.Anchor then self.Controls.Anchor:Set(anchorEnabled, false) end
     if self.Controls.AutoPurchase then self.Controls.AutoPurchase:Set(purchaseEnabled, false) end
+    if self.Controls.AutoSell then self.Controls.AutoSell:Set(sellEnabled, false) end
 end
 
 function Controller:SetAAStatus(text, color)
     if not self.View.AAStatus then return end
     self.View.AAStatus.Text = tostring(text or "Ready")
     self.View.AAStatus.TextColor3 = color or Theme.textMuted
+end
+
+function Controller:SetAASellStatus(text, color)
+    if not self.View.AASellStatus then return end
+    self.View.AASellStatus.Text = tostring(text or "Auto Sell disabled")
+    self.View.AASellStatus.TextColor3 = color or Theme.textMuted
 end
 
 function Controller:SetSenderStatus(text, successful)
