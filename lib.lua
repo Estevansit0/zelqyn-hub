@@ -1,4 +1,4 @@
---v2
+--v3
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
 local RunService = cloneref(game:GetService("RunService"))
@@ -38,6 +38,7 @@ local UiLib = {
         knobSz = 16,
         rippleAsset = "rbxassetid://266543268",
         backgroundAsset = "rbxassetid://130379359123488",
+        logoAsset = "rbxassetid://0",
         desktopWidth = 390,
         desktopHeight = 620,
         mobileWidth = 346,
@@ -204,7 +205,7 @@ local function makeCard(parent, height, order)
     local card = create("Frame", {
         Size = UDim2.new(1, 0, 0, height or 44),
         BackgroundColor3 = Theme.bg2,
-        BackgroundTransparency = 0.04,
+        BackgroundTransparency = 0,
         BorderSizePixel = 0,
         LayoutOrder = order or 0,
     }, parent)
@@ -608,26 +609,20 @@ local TabData = {
     { "AI", "AI ENGINE", 520, 530 },
     { "LOG", "ACTIVITY LOG", 450, 470 },
     { "SENDER", "TEST SENDER", 345, 355 },
-    { "AA", "ADMIN ABUSE", 430, 440 },
+    { "AA", "ADMIN ABUSE", 620, 650 },
 }
 
 local function expandedSize(self, index)
-    local viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize
-        or Vector2.new(1920, 1080)
-    local availableWidth = math.max(220, viewport.X - 20)
-    local availableHeight = math.max(160, viewport.Y - 20)
     if self.VerticalLayout then
-        return UDim2.new(0, math.min(Theme.desktopWidth, availableWidth), 0, math.min(TabData[index or self.ActiveTab][4], availableHeight))
+        return UDim2.new(0, Theme.desktopWidth, 0, TabData[index or self.ActiveTab][4])
     end
-    return UDim2.new(0, math.min(Theme.mobileWidth, availableWidth), 0, math.min(TabData[index or self.ActiveTab][3], Theme.mobileMaxHeight, availableHeight))
+    return UDim2.new(0, Theme.mobileWidth, 0, math.min(TabData[index or self.ActiveTab][3], Theme.mobileMaxHeight))
 end
 
 local function collapsedSize(self)
-    local viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize
-        or Vector2.new(1920, 1080)
     return UDim2.new(
         0,
-        math.min(self.VerticalLayout and Theme.desktopWidth or Theme.mobileWidth, math.max(220, viewport.X - 20)),
+        self.VerticalLayout and Theme.desktopWidth or Theme.mobileWidth,
         0,
         self.VerticalLayout and 50 or 48
     )
@@ -681,7 +676,7 @@ local function buildWindow(self)
             -(self.VerticalLayout and TabData[self.Options.ActiveTab or 1][4] or TabData[self.Options.ActiveTab or 1][3]) / 2
         ),
         BackgroundColor3 = Theme.bg1,
-        BackgroundTransparency = 0.02,
+        BackgroundTransparency = 0,
         BorderSizePixel = 0,
         Active = true,
         ClipsDescendants = true,
@@ -700,8 +695,9 @@ local function buildWindow(self)
     local function syncShadow()
         local position = view.Window.Position
         local size = view.Window.Size
+        local scale = view.Scale and view.Scale.Scale or 1
         view.Shadow.Position = UDim2.new(position.X.Scale, position.X.Offset - 22, position.Y.Scale, position.Y.Offset - 14)
-        view.Shadow.Size = UDim2.new(size.X.Scale, size.X.Offset + 44, size.Y.Scale, size.Y.Offset + 52)
+        view.Shadow.Size = UDim2.new(size.X.Scale, size.X.Offset * scale + 44, size.Y.Scale, size.Y.Offset * scale + 52)
     end
     syncShadow()
     connect(self, view.Window:GetPropertyChangedSignal("Position"), syncShadow)
@@ -709,6 +705,8 @@ local function buildWindow(self)
     corner(view.Window, UDim.new(0, 12))
     stroke(view.Window, Theme.accentDim, 1)
     view.Scale = create("UIScale", { Scale = 0.92 }, view.Window)
+    connect(self, view.Scale:GetPropertyChangedSignal("Scale"), syncShadow)
+    syncShadow()
     create("UIGradient", {
         Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0, Color3.fromRGB(12, 7, 54)),
@@ -741,6 +739,40 @@ local function buildWindow(self)
         }),
         Rotation = 135,
     }, view.Background)
+
+    view.PumpkinLayer = create("Frame", {
+        Name = "PumpkinRain",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        ZIndex = 2,
+    }, view.Window)
+    view.Pumpkins = {}
+    local pumpkinSpecs = {
+        { 0.07, -0.12, 19, 0.045 }, { 0.24, 0.18, 15, 0.032 },
+        { 0.43, -0.32, 22, 0.039 }, { 0.62, 0.07, 17, 0.049 },
+        { 0.82, -0.22, 20, 0.035 }, { 0.94, 0.31, 14, 0.043 },
+        { 0.16, 0.55, 18, 0.038 }, { 0.51, 0.72, 16, 0.046 },
+        { 0.76, 0.48, 21, 0.034 },
+    }
+    for index, spec in ipairs(pumpkinSpecs) do
+        local label = create("TextLabel", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.fromScale(spec[1], spec[2]),
+            Size = UDim2.fromOffset(spec[3] + 8, spec[3] + 8),
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            Font = Enum.Font.GothamBold,
+            Text = "🎃",
+            TextSize = spec[3],
+            TextTransparency = 0.28,
+            ZIndex = 2,
+        }, view.PumpkinLayer)
+        view.Pumpkins[index] = {
+            Label = label, X = spec[1], Y = spec[2], Speed = spec[4], Phase = index * 0.71,
+        }
+    end
 
     local glowStroke = create("UIStroke", {
         Color = Theme.accentSec,
@@ -788,7 +820,7 @@ local function buildWindow(self)
         BorderSizePixel = 0,
         Active = true,
         Selectable = true,
-        ZIndex = 2,
+        ZIndex = 4,
     }, view.Window)
     create("UIGradient", {
         Color = ColorSequence.new({
@@ -811,6 +843,15 @@ local function buildWindow(self)
     corner(mark, UDim.new(1, 0))
     stroke(mark, Theme.accentSec, 1)
     surface(mark, 25)
+    create("ImageLabel", {
+        Size = UDim2.new(1, -4, 1, -4),
+        Position = UDim2.new(0, 2, 0, 2),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Image = Theme.logoAsset,
+        ScaleType = Enum.ScaleType.Fit,
+        ZIndex = mark.ZIndex + 1,
+    }, mark)
     local title = makeText(view.Header, string.upper(UiLib.Name), {
         Size = UDim2.new(0, 190, 0, 21),
         Position = UDim2.new(0, 49, 0, 5),
@@ -874,9 +915,9 @@ local function buildWindow(self)
         Position = UDim2.new(0, 0, 0, headerHeight),
         Size = UDim2.new(1, 0, 0, navHeight),
         BackgroundColor3 = Theme.bg0,
-        BackgroundTransparency = 0.08,
+        BackgroundTransparency = 0,
         BorderSizePixel = 0,
-        ZIndex = 2,
+        ZIndex = 4,
     }, view.Window)
     surface(view.Nav, 90)
     create("UIPadding", {
@@ -895,13 +936,13 @@ local function buildWindow(self)
         BackgroundColor3 = Theme.accentDim,
         BackgroundTransparency = 0.45,
         BorderSizePixel = 0,
-        ZIndex = 2,
+        ZIndex = 4,
     }, view.Window)
     view.Content = create("Frame", {
         Position = UDim2.new(0, 0, 0, headerHeight + navHeight + 1),
         Size = UDim2.new(1, 0, 1, -(headerHeight + navHeight + 1)),
         BackgroundTransparency = 1,
-        ZIndex = 2,
+        ZIndex = 3,
     }, view.Window)
     for index, tab in ipairs(TabData) do
         local button = create("TextButton", {
@@ -955,6 +996,24 @@ function Controller:Clamp(position)
     return UDim2.new(position.X.Scale, x - position.X.Scale * viewport.X, position.Y.Scale, y - position.Y.Scale * viewport.Y)
 end
 
+function Controller:UpdateResponsiveScale(instant)
+    local camera = workspace.CurrentCamera
+    if not camera or not self.View.Window or not self.View.Scale then return 1 end
+    local viewport = camera.ViewportSize
+    local size = self.Minimized and collapsedSize(self) or expandedSize(self, self.ActiveTab)
+    local width = math.max(1, size.X.Offset)
+    local height = math.max(1, size.Y.Offset)
+    local target = math.min(1, (viewport.X - 20) / width, (viewport.Y - 20) / height)
+    target = math.clamp(target, UiLib.IsTouch and 0.62 or 0.56, 1)
+    self.ResponsiveScale = target
+    if instant then
+        self.View.Scale.Scale = target
+    else
+        TweenService:Create(self.View.Scale, Theme.tweenMed, { Scale = target }):Play()
+    end
+    return target
+end
+
 function Controller:SetTab(index, instant)
     index = math.clamp(math.floor(tonumber(index) or 1), 1, #TabData)
     self.ActiveTab = index
@@ -971,11 +1030,15 @@ function Controller:SetTab(index, instant)
         local size = expandedSize(self, index)
         if instant then
             self.View.Window.Size = size
+            self:UpdateResponsiveScale(true)
             self.View.Window.Position = self:Clamp(self.View.Window.Position)
         else
             local resize = TweenService:Create(self.View.Window, Theme.tweenMed, { Size = size })
             resize.Completed:Connect(function()
-                if not self.Destroyed then self.View.Window.Position = self:Clamp(self.View.Window.Position) end
+                if not self.Destroyed then
+                    self:UpdateResponsiveScale(false)
+                    self.View.Window.Position = self:Clamp(self.View.Window.Position)
+                end
             end)
             resize:Play()
         end
@@ -992,11 +1055,15 @@ function Controller:SetMinimized(value, instant)
     local size = self.Minimized and collapsedSize(self) or expandedSize(self, self.ActiveTab)
     if instant then
         self.View.Window.Size = size
+        self:UpdateResponsiveScale(true)
         self.View.Window.Position = self:Clamp(self.View.Window.Position)
     else
         local resize = TweenService:Create(self.View.Window, Theme.tweenMed, { Size = size })
         resize.Completed:Connect(function()
-            if not self.Destroyed then self.View.Window.Position = self:Clamp(self.View.Window.Position) end
+            if not self.Destroyed then
+                self:UpdateResponsiveScale(false)
+                self.View.Window.Position = self:Clamp(self.View.Window.Position)
+            end
         end)
         resize:Play()
     end
@@ -1030,6 +1097,7 @@ local function wireWindow(self)
         connect(self, workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"), function()
             if self.View.Window.Parent then
                 self.View.Window.Size = self.Minimized and collapsedSize(self) or expandedSize(self, self.ActiveTab)
+                self:UpdateResponsiveScale(true)
                 self.View.Window.Position = self:Clamp(self.View.Window.Position)
             end
         end)
@@ -1039,8 +1107,18 @@ local function wireWindow(self)
         if not self.View.Gui.Enabled then return end
         animationElapsed = animationElapsed + delta
         if animationElapsed < (UiLib.IsTouch and 0.09 or 0.05) then return end
+        local animationDelta = animationElapsed
         animationElapsed = 0
         local now = os.clock()
+        for _, pumpkin in ipairs(self.View.Pumpkins or {}) do
+            pumpkin.Y = pumpkin.Y + animationDelta * pumpkin.Speed
+            if pumpkin.Y > 1.12 then
+                pumpkin.Y = -0.14
+                pumpkin.X = 0.04 + ((pumpkin.X + 0.37) % 0.92)
+            end
+            pumpkin.Label.Position = UDim2.fromScale(pumpkin.X, pumpkin.Y)
+            pumpkin.Label.Rotation = math.sin(now * 0.9 + pumpkin.Phase) * 16
+        end
         local rotation = (now * 85.7142857) % 360
         self.View.Glow.Rotation = rotation
         self.View.Aura.Rotation = rotation
@@ -1181,7 +1259,7 @@ local function buildRules(self)
     }, card)
     local scroll = create("ScrollingFrame", {
         Size = UDim2.new(1, -8, 0, 158), Position = UDim2.new(0, 4, 0, 44),
-        BackgroundColor3 = Theme.bg3, BackgroundTransparency = 0.2,
+        BackgroundColor3 = Theme.bg3, BackgroundTransparency = 0,
         BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = Theme.accentSec,
         AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ClipsDescendants = true,
     }, card)
@@ -1197,7 +1275,7 @@ local function buildRules(self)
     for index = 1, 10 do
         local slot = create("Frame", {
             Size = UDim2.new(1, 0, 0, 30), BackgroundColor3 = Theme.inputBg,
-            BackgroundTransparency = 0.2, BorderSizePixel = 0, LayoutOrder = index,
+            BackgroundTransparency = 0, BorderSizePixel = 0, LayoutOrder = index,
             ClipsDescendants = true,
         }, scroll)
         corner(slot, UDim.new(0, 4))
@@ -1267,7 +1345,7 @@ local function buildLog(self)
     for _, child in ipairs(page:GetChildren()) do child:Destroy() end
     self.View.LogScroll = create("ScrollingFrame", {
         Size = UDim2.new(1, -20, 1, -62), Position = UDim2.new(0, 10, 0, 10),
-        BackgroundColor3 = Theme.bg3, BackgroundTransparency = 0.2,
+        BackgroundColor3 = Theme.bg3, BackgroundTransparency = 0,
         BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = Theme.accentCyan,
         AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ClipsDescendants = true,
     }, page)
@@ -1336,19 +1414,31 @@ local function buildAA(self)
     self.Controls.Anchor = makeToggle(self, page, {
         Text = "Anchor", Value = self.State.Anchor, Order = 1, Callback = "AnchorChanged",
     })
+    self.Controls.MaxBrainrotPrice = makeInput(self, page, {
+        Text = "Buy / Sell Max Price", Value = self.State.MaxBrainrotPrice or "5m",
+        Placeholder = "5m", InputWidth = 96, Order = 2, Callback = "MaxBrainrotPriceChanged",
+    })
     self.Controls.AutoPurchase = makeToggle(self, page, {
-        Text = "Auto Purchase", Value = self.State.AutoPurchase, Order = 2, Callback = "AutoPurchaseChanged",
+        Text = "Auto Purchase", Value = self.State.AutoPurchase, Order = 3, Callback = "AutoPurchaseChanged",
     })
-    self.Controls.AutoSell = makeToggle(self, page, {
-        Text = "Auto Sell", Value = self.State.AutoSell, Order = 3, Callback = "AutoSellChanged",
-    })
-    makeParagraph(page, "Auto Sell", "Sells only your plot's brainrots with base Generation below Las Tralaleritas. Equal or higher stays safe.", 82, 4)
-    self.View.AASellStatus = makeText(makeCard(page, 44, 5), "Auto Sell disabled", {
+    makeParagraph(page, "Auto Purchase", "Purchases the nearest brainrot at 10 studs or less only when its base Price is at or below the limit.", 76, 4)
+    self.View.AAStatus = makeText(makeCard(page, 44, 5), "Ready", {
         Size = UDim2.new(1, -20, 1, 0), Position = UDim2.new(0, 10, 0, 0),
         TextSize = 12, TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
     })
-    makeParagraph(page, "Auto Purchase", "Purchases the nearest brainrot at 10 studs or less.", 74, 6)
-    self.View.AAStatus = makeText(makeCard(page, 44, 7), "Ready", {
+    self.Controls.AutoSell = makeToggle(self, page, {
+        Text = "Auto Sell", Value = self.State.AutoSell, Order = 6, Callback = "AutoSellChanged",
+    })
+    makeParagraph(page, "Auto Sell", "Sells only your own plot's brainrots whose base Price is at or below the same limit. Higher-priced brainrots stay safe.", 76, 7)
+    self.View.AASellStatus = makeText(makeCard(page, 44, 8), "Auto Sell disabled", {
+        Size = UDim2.new(1, -20, 1, 0), Position = UDim2.new(0, 10, 0, 0),
+        TextSize = 12, TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
+    })
+    self.Controls.Optimizer = makeToggle(self, page, {
+        Text = "Optimizer", Value = self.State.Optimizer, Order = 9, Callback = "OptimizerChanged",
+    })
+    makeParagraph(page, "Optimizer", "Disables heavy world effects and textures in batches. Player characters are preserved and every change is restored when disabled.", 76, 10)
+    self.View.OptimizerStatus = makeText(makeCard(page, 44, 11), "Optimizer disabled", {
         Size = UDim2.new(1, -20, 1, 0), Position = UDim2.new(0, 10, 0, 0),
         TextSize = 12, TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
     })
@@ -1364,10 +1454,11 @@ function Controller:SetScanStatus(text, color)
     self.View.ScanStatus.TextColor3 = color or Theme.textMuted
 end
 
-function Controller:SetAAStates(anchorEnabled, purchaseEnabled, sellEnabled)
+function Controller:SetAAStates(anchorEnabled, purchaseEnabled, sellEnabled, optimizerEnabled)
     if self.Controls.Anchor then self.Controls.Anchor:Set(anchorEnabled, false) end
     if self.Controls.AutoPurchase then self.Controls.AutoPurchase:Set(purchaseEnabled, false) end
     if self.Controls.AutoSell then self.Controls.AutoSell:Set(sellEnabled, false) end
+    if self.Controls.Optimizer then self.Controls.Optimizer:Set(optimizerEnabled, false) end
 end
 
 function Controller:SetAAStatus(text, color)
@@ -1380,6 +1471,12 @@ function Controller:SetAASellStatus(text, color)
     if not self.View.AASellStatus then return end
     self.View.AASellStatus.Text = tostring(text or "Auto Sell disabled")
     self.View.AASellStatus.TextColor3 = color or Theme.textMuted
+end
+
+function Controller:SetOptimizerStatus(text, color)
+    if not self.View.OptimizerStatus then return end
+    self.View.OptimizerStatus.Text = tostring(text or "Optimizer disabled")
+    self.View.OptimizerStatus.TextColor3 = color or Theme.textMuted
 end
 
 function Controller:SetSenderStatus(text, successful)
@@ -1476,6 +1573,8 @@ function UiLib.CreateRedeemer(options)
     wireWindow(self)
     self:SetTab(self.Options.ActiveTab or 1, true)
     self:SetMinimized(self.Options.Minimized, true)
+    local targetScale = self:UpdateResponsiveScale(true)
+    self.View.Scale.Scale = targetScale * 0.92
     self.View.Window.Position = self:Clamp(self.View.Window.Position)
     task.defer(function()
         if not self.Destroyed and self.View.Window.Parent then
@@ -1483,7 +1582,7 @@ function UiLib.CreateRedeemer(options)
         end
     end)
     for _, entry in ipairs(self.Options.Logs or {}) do self:Log(entry) end
-    TweenService:Create(self.View.Scale, Theme.tweenSpring, { Scale = 1 }):Play()
+    TweenService:Create(self.View.Scale, Theme.tweenSpring, { Scale = targetScale }):Play()
     return self
 end
 
