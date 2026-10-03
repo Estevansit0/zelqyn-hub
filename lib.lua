@@ -1,4 +1,4 @@
---v3
+--v4
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
 local RunService = cloneref(game:GetService("RunService"))
@@ -1001,10 +1001,15 @@ function Controller:UpdateResponsiveScale(instant)
     if not camera or not self.View.Window or not self.View.Scale then return 1 end
     local viewport = camera.ViewportSize
     local size = self.Minimized and collapsedSize(self) or expandedSize(self, self.ActiveTab)
-    local width = math.max(1, size.X.Offset)
-    local height = math.max(1, size.Y.Offset)
-    local target = math.min(1, (viewport.X - 20) / width, (viewport.Y - 20) / height)
-    target = math.clamp(target, UiLib.IsTouch and 0.62 or 0.56, 1)
+    local width, height = math.max(1, size.X.Offset), math.max(1, size.Y.Offset)
+    local fit = math.min((viewport.X - 20) / width, (viewport.Y - 20) / height)
+    local target
+    if UiLib.IsTouch then
+        target = math.clamp(math.min(1, fit), 0.58, 1)
+    else
+        local desktopBase = math.clamp(viewport.Y / 1080, 0.56, 0.72)
+        target = math.clamp(math.min(fit, desktopBase), 0.44, 0.72)
+    end
     self.ResponsiveScale = target
     if instant then
         self.View.Scale.Scale = target
@@ -1240,11 +1245,8 @@ local function buildHome(self)
         Text = "SUBMIT CODE AFTER", Value = self.State.CaptureCount > 0 and self.State.CaptureCount or "",
         Placeholder = "0", Order = 6, Callback = "CaptureCountChanged",
     })
-    self.Controls.AutoDetect = makeToggle(self, page, {
-        Text = "AUTO DETECT (BETA)", Value = self.State.AutoDetect, Order = 7, Callback = "AutoDetectChanged",
-    })
     makeButton(self, page, {
-        Text = "COPY DISCORD", Callback = "CopyDiscord", Order = 8,
+        Text = "COPY DISCORD", Callback = "CopyDiscord", Order = 7,
         TextColor = Theme.accentSec, Bold = true,
     })
 end
@@ -1434,11 +1436,12 @@ local function buildAA(self)
         Size = UDim2.new(1, -20, 1, 0), Position = UDim2.new(0, 10, 0, 0),
         TextSize = 12, TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
     })
-    self.Controls.Optimizer = makeToggle(self, page, {
-        Text = "Optimizer", Value = self.State.Optimizer, Order = 9, Callback = "OptimizerChanged",
+    self.Controls.Optimizer = makeButton(self, page, {
+        Text = "OPTIMIZE GAME (ONE-WAY)", Order = 9, Callback = "OptimizeGame",
+        TextColor = Theme.warning, Bold = true,
     })
-    makeParagraph(page, "Optimizer", "Disables heavy world effects and textures in batches. Player characters are preserved and every change is restored when disabled.", 76, 10)
-    self.View.OptimizerStatus = makeText(makeCard(page, 44, 11), "Optimizer disabled", {
+    makeParagraph(page, "Optimizer", "Permanently removes heavy client-side effects, textures and non-player cosmetics for this server session. Rejoin to restore them.", 76, 10)
+    self.View.OptimizerStatus = makeText(makeCard(page, 44, 11), "Not optimized", {
         Size = UDim2.new(1, -20, 1, 0), Position = UDim2.new(0, 10, 0, 0),
         TextSize = 12, TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
     })
@@ -1454,31 +1457,34 @@ function Controller:SetScanStatus(text, color)
     self.View.ScanStatus.TextColor3 = color or Theme.textMuted
 end
 
-function Controller:SetAAStates(anchorEnabled, purchaseEnabled, sellEnabled, optimizerEnabled)
+function Controller:SetAAStates(anchorEnabled, purchaseEnabled, sellEnabled)
     if self.Controls.Anchor then self.Controls.Anchor:Set(anchorEnabled, false) end
     if self.Controls.AutoPurchase then self.Controls.AutoPurchase:Set(purchaseEnabled, false) end
     if self.Controls.AutoSell then self.Controls.AutoSell:Set(sellEnabled, false) end
-    if self.Controls.Optimizer then self.Controls.Optimizer:Set(optimizerEnabled, false) end
 end
 
 function Controller:SetAAStatus(text, color)
     if not self.View.AAStatus then return end
-    self.View.AAStatus.Text = tostring(text or "Ready")
-    self.View.AAStatus.TextColor3 = color or Theme.textMuted
+    self.View.AAStatus.Text, self.View.AAStatus.TextColor3 = tostring(text or "Ready"), color or Theme.textMuted
 end
 
 function Controller:SetAASellStatus(text, color)
     if not self.View.AASellStatus then return end
-    self.View.AASellStatus.Text = tostring(text or "Auto Sell disabled")
-    self.View.AASellStatus.TextColor3 = color or Theme.textMuted
+    self.View.AASellStatus.Text, self.View.AASellStatus.TextColor3 = tostring(text or "Auto Sell disabled"), color or Theme.textMuted
 end
 
 function Controller:SetOptimizerStatus(text, color)
     if not self.View.OptimizerStatus then return end
-    self.View.OptimizerStatus.Text = tostring(text or "Optimizer disabled")
-    self.View.OptimizerStatus.TextColor3 = color or Theme.textMuted
+    self.View.OptimizerStatus.Text, self.View.OptimizerStatus.TextColor3 = tostring(text or "Not optimized"), color or Theme.textMuted
 end
 
+function Controller:SetOptimizerApplied(applied)
+    local control = self.Controls.Optimizer; if not control then return end
+    control.Button.Active, control.Button.Selectable = applied ~= true, applied ~= true
+    control.Button.Text = applied and "OPTIMIZED - REJOIN TO RESTORE" or "OPTIMIZE GAME (ONE-WAY)"
+    control.Button.TextColor3 = applied and Theme.success or Theme.warning
+    control.Frame.BackgroundColor3 = applied and Theme.bg3 or Theme.bg2
+end
 function Controller:SetSenderStatus(text, successful)
     if not self.View.SenderStatus then return end
     self.View.SenderStatus.Text = tostring(text or "Ready")
@@ -1570,6 +1576,7 @@ function UiLib.CreateRedeemer(options)
     buildLog(self)
     buildSender(self)
     buildAA(self)
+    self:SetOptimizerApplied(self.State.OptimizerApplied == true)
     wireWindow(self)
     self:SetTab(self.Options.ActiveTab or 1, true)
     self:SetMinimized(self.Options.Minimized, true)
