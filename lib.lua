@@ -1007,8 +1007,8 @@ function Controller:UpdateResponsiveScale(instant)
     if UiLib.IsTouch then
         target = math.clamp(math.min(1, fit), 0.58, 1)
     else
-        local desktopBase = math.clamp(viewport.Y / 1080, 0.56, 0.72)
-        target = math.clamp(math.min(fit, desktopBase), 0.44, 0.72)
+        local desktopBase = math.clamp(viewport.Y / 960, 0.68, 0.90)
+        target = math.clamp(math.min(fit, desktopBase), 0.58, 0.90)
     end
     self.ResponsiveScale = target
     if instant then
