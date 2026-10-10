@@ -1241,12 +1241,8 @@ local function buildHome(self)
             { Text = "Remote", Value = "Remote" },
         },
     })
-    self.Controls.CaptureCount = makeInput(self, page, {
-        Text = "SUBMIT CODE AFTER", Value = self.State.CaptureCount > 0 and self.State.CaptureCount or "",
-        Placeholder = "0", Order = 6, Callback = "CaptureCountChanged",
-    })
     makeButton(self, page, {
-        Text = "COPY DISCORD", Callback = "CopyDiscord", Order = 7,
+        Text = "COPY DISCORD", Callback = "CopyDiscord", Order = 6,
         TextColor = Theme.accentSec, Bold = true,
     })
 end
