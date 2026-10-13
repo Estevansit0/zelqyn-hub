@@ -1,4 +1,3 @@
-
 return {
     { Name = "Spyder Elephant", Generation = 1000000000 },
     { Name = "Strawberry Elephant", Generation = 750000000 },
@@ -31,6 +30,7 @@ return {
     { Name = "Jelly Moby", Generation = 175000000 },
     { Name = "Venuspino", Generation = 175000000 },
     { Name = "Bumbatron", Generation = 172500000 },
+    { Name = "Cobra Gelato", Generation = 172500000 },
     { Name = "Bunny and Eggy", Generation = 170000000 },
     { Name = "Popcuru and Fizzuru", Generation = 170000000 },
     { Name = "La Breakfast Combinasion", Generation = 165000000 },
@@ -69,6 +69,7 @@ return {
     { Name = "Sammyni Spookyni", Generation = 80000000 },
     { Name = "Spooky and Pumpky", Generation = 80000000 },
     { Name = "Cangurato Gelato", Generation = 77500000 },
+    { Name = "Slushki Huski", Generation = 77500000 },
     { Name = "Ginger Gerat", Generation = 75000000 },
     { Name = "La Craft Machine", Generation = 75000000 },
     { Name = "La Ginger Sekolah", Generation = 75000000 },
@@ -152,6 +153,7 @@ return {
     { Name = "Noodle Noodle Poodle", Generation = 27500000 },
     { Name = "Tralaledon", Generation = 27500000 },
     { Name = "Oni Oni Panda", Generation = 27000000 },
+    { Name = "Tosto Dino", Generation = 27000000 },
     { Name = "Mieteteira Bicicleteira", Generation = 26000000 },
     { Name = "Tacoturbo Tacorito", Generation = 26000000 },
     { Name = "Tuff Toucan", Generation = 26000000 },
@@ -365,6 +367,7 @@ return {
     { Name = "Appelini", Generation = 300000 },
     { Name = "Karkerheart Luvkur", Generation = 297500 },
     { Name = "Pop Pop Sahur", Generation = 295000 },
+    { Name = "Tic Tic Rick", Generation = 295000 },
     { Name = "Dolphini Jetskini", Generation = 294500 },
     { Name = "Pandanini Frostini", Generation = 294000 },
     { Name = "Ginger Cisterna", Generation = 293500 },
