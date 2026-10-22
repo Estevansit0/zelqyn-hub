@@ -1,4 +1,4 @@
---v7
+--v8
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
 local RunService = cloneref(game:GetService("RunService"))
@@ -1324,7 +1324,17 @@ local function buildSender(self)
         local ok, status = emit(self, "SendNotification", message)
         self:SetSenderStatus(status, ok)
     end)
-    local statusCard = makeCard(page, 42, 3)
+    self.Controls.FastMessageGap = makeDropdown(self, page, {
+        Text = "FAST TEST REDEEM GAP", Value = 0.2, Badge = "2 QUESTIONS", Order = 3,
+        Items = { { Text = "200 ms after first submit", Value = 0.2 }, { Text = "0 ms (parallel)", Value = 0 } },
+    })
+    local fastSend = makeButton(self, page, { Text = "SEND 2 FAST MESSAGES", Bold = true, Order = 4 })
+    connect(self, fastSend.Button.Activated, function()
+        local ok, status = emit(self, "SendTwoFastMessages", self.Controls.FastMessageGap.Value)
+        self:SetSenderStatus(status, ok)
+    end)
+    makeParagraph(page, "FAST TEST", "Two plain questions: random candidate, then first-minifigure DLC. Waits for both AI answers, then sends 2 real redeems at the chosen gap. Results appear in LOG.", 96, 5)
+    local statusCard = makeCard(page, 42, 6)
     statusCard.BackgroundColor3 = Theme.bg3
     self.View.SenderStatus = makeText(statusCard, self.State.NotificationReady and "Remote ready" or "Remote unavailable", {
         Size = UDim2.new(1, -24, 1, 0), Position = UDim2.new(0, 12, 0, 0),
