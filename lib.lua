@@ -1,4 +1,4 @@
---v4
+--v5
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
 local RunService = cloneref(game:GetService("RunService"))
@@ -33,8 +33,8 @@ local UiLib = {
         tweenMed = TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
         tweenSnap = TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
         tweenSpring = TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-        toggleW = 40,
-        toggleH = 20,
+        toggleW = 42,
+        toggleH = 22,
         knobSz = 16,
         rippleAsset = "rbxassetid://266543268",
         backgroundAsset = "rbxassetid://130379359123488",
@@ -59,14 +59,14 @@ local function create(className, properties, parent)
 end
 
 local function corner(parent, radius)
-    return create("UICorner", { CornerRadius = radius or UDim.new(0, 7) }, parent)
+    return create("UICorner", { CornerRadius = radius or UDim.new(0, 9) }, parent)
 end
 
 local function stroke(parent, color, thickness, transparency)
     local outline = create("UIStroke", {
         Color = color or Theme.accent,
         Thickness = thickness or 1,
-        Transparency = transparency or 0.38,
+        Transparency = transparency or 0.34,
         ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
     }, parent)
     create("UIGradient", {
@@ -119,12 +119,12 @@ local function hover(self, target, button, normalColor, hoverColor)
 end
 
 local function gloss(parent, strength)
-    local amount = strength or 0.12
+    local amount = strength or 0.14
     return create("UIGradient", {
         Rotation = 90,
         Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-            ColorSequenceKeypoint.new(0.48, Color3.new(0.97, 0.97, 1)),
+            ColorSequenceKeypoint.new(0.48, Color3.new(0.96, 0.96, 1)),
             ColorSequenceKeypoint.new(1, Color3.new(1 - amount, 1 - amount, 1)),
         }),
     }, parent)
@@ -132,32 +132,22 @@ end
 
 local function ripple(self, button, radius)
     local host = create("Frame", {
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        ClipsDescendants = true,
-        ZIndex = button.ZIndex,
+        Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
+        BorderSizePixel = 0, ClipsDescendants = true, ZIndex = button.ZIndex,
     }, button)
-    corner(host, UDim.new(0, radius or 7))
+    corner(host, UDim.new(0, radius or 9))
     connect(self, button.MouseButton1Down, function(x, y)
-        local absolute = button.AbsolutePosition
-        local size = button.AbsoluteSize
+        local absolute, size = button.AbsolutePosition, button.AbsoluteSize
         local localX = math.clamp((x or absolute.X + size.X / 2) - absolute.X, 0, size.X)
         local localY = math.clamp((y or absolute.Y + size.Y / 2) - absolute.Y, 0, size.Y)
         local diameter = math.max(size.X, size.Y) * 2.2
         local circle = create("ImageLabel", {
-            AnchorPoint = Vector2.new(0.5, 0.5),
-            Position = UDim2.new(0, localX, 0, localY),
-            Size = UDim2.new(),
-            BackgroundTransparency = 1,
-            Image = Theme.rippleAsset,
-            ImageColor3 = Theme.accentCyan,
-            ImageTransparency = 0.68,
-            ZIndex = button.ZIndex + 1,
+            AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, localX, 0, localY),
+            Size = UDim2.new(), BackgroundTransparency = 1, Image = Theme.rippleAsset,
+            ImageColor3 = Theme.accentCyan, ImageTransparency = 0.68, ZIndex = button.ZIndex + 1,
         }, host)
         local animation = TweenService:Create(circle, TweenInfo.new(0.42, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0, diameter, 0, diameter),
-            ImageTransparency = 1,
+            Size = UDim2.new(0, diameter, 0, diameter), ImageTransparency = 1,
         })
         animation:Play()
         animation.Completed:Connect(function()
@@ -168,21 +158,15 @@ end
 
 local function shine(self, target, host)
     local layer = create("Frame", {
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.new(1, 1, 1),
-        BorderSizePixel = 0,
-        BackgroundTransparency = 0,
-        ZIndex = math.max(target.ZIndex - 1, 1),
+        Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.new(1, 1, 1),
+        BorderSizePixel = 0, BackgroundTransparency = 0, ZIndex = math.max(target.ZIndex - 1, 1),
     }, host or target)
-    corner(layer, UDim.new(0, 7))
+    corner(layer, UDim.new(0, 9))
     local gradient = create("UIGradient", {
-        Rotation = 18,
-        Offset = Vector2.new(-1, 0),
+        Rotation = 18, Offset = Vector2.new(-1, 0),
         Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 1),
-            NumberSequenceKeypoint.new(0.42, 1),
-            NumberSequenceKeypoint.new(0.5, 0.82),
-            NumberSequenceKeypoint.new(0.58, 1),
+            NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.42, 1),
+            NumberSequenceKeypoint.new(0.5, 0.80), NumberSequenceKeypoint.new(0.58, 1),
             NumberSequenceKeypoint.new(1, 1),
         }),
     }, layer)
@@ -205,36 +189,59 @@ local function makeCard(parent, height, order)
     local card = create("Frame", {
         Size = UDim2.new(1, 0, 0, height or 44),
         BackgroundColor3 = Theme.bg2,
-        BackgroundTransparency = 0,
+        BackgroundTransparency = 0.04,
         BorderSizePixel = 0,
         LayoutOrder = order or 0,
     }, parent)
-    corner(card)
-    stroke(card, Theme.accentDim, 1)
-    gloss(card, 0.12)
+    corner(card, UDim.new(0, 9))
+    stroke(card, Theme.accentDim, 1, 0.32)
+    gloss(card, 0.14)
     return card
 end
 
 local function makeText(parent, text, properties)
     local values = {
-        Size = UDim2.new(1, -24, 1, 0),
-        Position = UDim2.new(0, 12, 0, 0),
-        BackgroundTransparency = 1,
-        Font = Enum.Font.Gotham,
-        TextSize = 13,
-        TextColor3 = Theme.textPri,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Text = text or "",
+        Size = UDim2.new(1, -24, 1, 0), Position = UDim2.new(0, 12, 0, 0),
+        BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 13,
+        TextColor3 = Theme.textPri, TextXAlignment = Enum.TextXAlignment.Left, Text = text or "",
     }
     for key, value in pairs(properties or {}) do values[key] = value end
     return create("TextLabel", values, parent)
 end
 
+local function makePillBadge(parent, text, textColor, bgColor, pos, size, zIndex)
+    local pill = makeText(parent, text, {
+        AnchorPoint = Vector2.new(1, 0.5), Position = pos or UDim2.new(1, -10, 0.5, 0),
+        Size = size or UDim2.new(0, 62, 0, 20), BackgroundTransparency = 0,
+        BackgroundColor3 = bgColor or Theme.bg3, Font = Enum.Font.GothamBold, TextSize = 10,
+        TextColor3 = textColor or Theme.accentCyan, TextXAlignment = Enum.TextXAlignment.Center,
+        ZIndex = zIndex or 4,
+    })
+    corner(pill, UDim.new(1, 0))
+    stroke(pill, textColor or Theme.accentDim, 1, 0.48)
+    return pill
+end
+
+local function statusTone(text, explicitColor)
+    local upper = string.upper(tostring(text or "READY"))
+    if explicitColor then return explicitColor, "STATUS" end
+    if upper:find("COLLECTING", 1, true) or upper:find("WAIT", 1, true) or upper:find("ARMED", 1, true) then
+        return Theme.warning, "LISTENING"
+    end
+    if upper:find("VERIFYING", 1, true) or upper:find("SOLVING", 1, true) or upper:find("AI", 1, true) then
+        return Theme.accentSec, "AI ACTIVE"
+    end
+    if upper:find("REDEEMED", 1, true) or upper:find("COMPLETE", 1, true) or upper:find("SUBMITTED", 1, true) then
+        return Theme.success, "CLAIMED"
+    end
+    if upper:find("CANCEL", 1, true) or upper:find("SOLD OUT", 1, true) or upper:find("STOPPED", 1, true) or upper:find("EXPIRED", 1, true) then
+        return Theme.danger, "HALTED"
+    end
+    return Theme.accentCyan, "ONLINE"
+end
+
 local function escapeRichText(value)
-    return tostring(value or "")
-        :gsub("&", "&amp;")
-        :gsub("<", "&lt;")
-        :gsub(">", "&gt;")
+    return tostring(value or ""):gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;")
 end
 
 local function colorHex(color)
@@ -248,33 +255,17 @@ end
 
 local function logColor(message)
     local lower = tostring(message or ""):lower()
-    if lower:find("error", 1, true)
-        or lower:find("failed", 1, true)
-        or lower:find("malformed", 1, true)
-        or lower:find("unavailable", 1, true)
-    then
+    if lower:find("error", 1, true) or lower:find("failed", 1, true) or lower:find("malformed", 1, true) or lower:find("unavailable", 1, true) then
         return Theme.danger
     end
-    if lower:find("cancel", 1, true)
-        or lower:find("waiting", 1, true)
-        or lower:find("nothing pending", 1, true)
-    then
+    if lower:find("cancel", 1, true) or lower:find("waiting", 1, true) or lower:find("nothing pending", 1, true) then
         return Theme.warning
     end
-    if lower:find("detected", 1, true)
-        or lower:find("scanned", 1, true)
-        or lower:find("question", 1, true)
-        or lower:find("queued", 1, true)
-    then
+    if lower:find("detected", 1, true) or lower:find("scanned", 1, true) or lower:find("question", 1, true) or lower:find("queued", 1, true) then
         return Theme.info
     end
-    if lower:find("answer", 1, true)
-        or lower:find("redeemed", 1, true)
-        or lower:find("loaded", 1, true)
-        or lower:find("ready", 1, true)
-        or lower:find("enabled", 1, true)
-        or lower:find("sent", 1, true)
-        or lower:find("captured", 1, true)
+    if lower:find("answer", 1, true) or lower:find("redeemed", 1, true) or lower:find("loaded", 1, true)
+        or lower:find("ready", 1, true) or lower:find("enabled", 1, true) or lower:find("sent", 1, true) or lower:find("captured", 1, true)
     then
         return Theme.success
     end
@@ -282,52 +273,60 @@ local function logColor(message)
 end
 
 local function makeButton(self, parent, options)
-    local card = makeCard(parent, options.Height or 44, options.Order)
+    local card = makeCard(parent, options.Height or 42, options.Order)
     if options.Size then card.Size = options.Size end
     if options.Position then card.Position = options.Position end
-    if options.Color then card.BackgroundColor3 = options.Color end
+    local restColor = options.Color or (options.Primary and Theme.accentSec or Theme.bg2)
+    card.BackgroundColor3 = restColor
+    if options.Primary then
+        local existingGradient = card:FindFirstChildOfClass("UIGradient")
+        if existingGradient then existingGradient:Destroy() end
+        create("UIGradient", {
+            Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Theme.accentSec),
+                ColorSequenceKeypoint.new(0.55, Theme.accent),
+                ColorSequenceKeypoint.new(1, Theme.accentBlue),
+            }),
+            Rotation = 14,
+        }, card)
+    end
     local button = create("TextButton", {
-        Size = UDim2.new(1, 0, 1, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        BackgroundTransparency = 1,
-        AutoButtonColor = false,
-        Font = options.Bold and Enum.Font.GothamBlack or Enum.Font.GothamBold,
-        TextSize = options.TextSize or 13,
-        TextColor3 = options.TextColor or Theme.textPri,
-        Text = options.Text or "",
-        ZIndex = 3,
+        Size = UDim2.new(1, 0, 1, 0), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 0, 0.5, 0),
+        BackgroundTransparency = 1, AutoButtonColor = false,
+        Font = (options.Bold or options.Primary) and Enum.Font.GothamBlack or Enum.Font.GothamBold,
+        TextSize = options.TextSize or 12,
+        TextColor3 = options.TextColor or (options.Primary and Theme.activeTabText or Theme.textPri),
+        Text = options.Text or "", ZIndex = 3,
     }, card)
     local buttonScale = create("UIScale", {}, button)
     local underline = create("Frame", {
-        AnchorPoint = Vector2.new(0.5, 1),
-        Position = UDim2.new(0.5, 0, 1, -1),
-        Size = UDim2.new(0, 0, 0, 2),
-        BackgroundColor3 = Theme.accentCyan,
-        BorderSizePixel = 0,
-        ZIndex = 4,
+        AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -1),
+        Size = UDim2.new(options.Primary and 0.36 or 0, 0, 0, 2),
+        BackgroundColor3 = options.TextColor or Theme.accentCyan, BorderSizePixel = 0, ZIndex = 4,
     }, card)
     corner(underline, UDim.new(1, 0))
     surface(underline, 0)
     local outline = card:FindFirstChildOfClass("UIStroke")
+    if outline and options.Primary then outline.Color, outline.Transparency = Theme.accentSec, 0.12 end
     local playShine = shine(self, button, card)
-    ripple(self, button, 7)
-    local restColor = options.Color or Theme.bg2
+    ripple(self, button, 9)
     local hoverColor = options.HoverColor or (options.Primary and Theme.accent or Theme.hover)
-    local hoverText = options.Primary and Theme.activeTabText or Theme.accentCyan
+    local hoverText = options.Primary and Theme.activeTabText or (options.TextColor or Theme.accentCyan)
     connect(self, button.MouseEnter, function()
         TweenService:Create(card, Theme.tweenFast, { BackgroundColor3 = hoverColor }):Play()
         TweenService:Create(button, Theme.tweenFast, { TextColor3 = hoverText }):Play()
         TweenService:Create(buttonScale, Theme.tweenFast, { Scale = 1.02 }):Play()
-        TweenService:Create(underline, Theme.tweenSpring, { Size = UDim2.new(0.52, 0, 0, 2) }):Play()
-        if outline then TweenService:Create(outline, Theme.tweenFast, { Transparency = 0.06 }):Play() end
+        TweenService:Create(underline, Theme.tweenSpring, { Size = UDim2.new(0.62, 0, 0, 2) }):Play()
+        if outline then TweenService:Create(outline, Theme.tweenFast, { Transparency = 0.04 }):Play() end
     end)
     connect(self, button.MouseLeave, function()
         TweenService:Create(card, Theme.tweenFast, { BackgroundColor3 = restColor }):Play()
-        TweenService:Create(button, Theme.tweenFast, { TextColor3 = options.TextColor or Theme.textPri }):Play()
+        TweenService:Create(button, Theme.tweenFast, {
+            TextColor3 = options.TextColor or (options.Primary and Theme.activeTabText or Theme.textPri),
+        }):Play()
         TweenService:Create(buttonScale, Theme.tweenFast, { Scale = 1 }):Play()
-        TweenService:Create(underline, Theme.tweenFast, { Size = UDim2.new(0, 0, 0, 2) }):Play()
-        if outline then TweenService:Create(outline, Theme.tweenFast, { Transparency = 0.38 }):Play() end
+        TweenService:Create(underline, Theme.tweenFast, { Size = UDim2.new(options.Primary and 0.36 or 0, 0, 0, 2) }):Play()
+        if outline then TweenService:Create(outline, Theme.tweenFast, { Transparency = options.Primary and 0.12 or 0.32 }):Play() end
     end)
     connect(self, button.MouseButton1Down, function()
         TweenService:Create(buttonScale, Theme.tweenSnap, { Scale = 0.96 }):Play()
@@ -346,33 +345,46 @@ local function setToggle(control, enabled, instant)
     control.Value = enabled == true
     control.Gradient.Color = control.Value
         and ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Theme.accentCyan),
-            ColorSequenceKeypoint.new(1, Theme.accentSec),
+            ColorSequenceKeypoint.new(0, Theme.accentSec),
+            ColorSequenceKeypoint.new(0.55, Theme.accent),
+            ColorSequenceKeypoint.new(1, Theme.accentCyan),
         })
         or ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(82, 72, 135)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(38, 28, 82)),
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(48, 38, 92)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(24, 17, 54)),
         })
     local goalTrack = { BackgroundColor3 = control.Value and Theme.toggleOn or Theme.toggleOff }
     local goalKnob = {
         Position = control.Value
-            and UDim2.new(0, Theme.toggleW - Theme.knobSz - 2, 0.5, -Theme.knobSz / 2)
-            or UDim2.new(0, 2, 0.5, -Theme.knobSz / 2),
+            and UDim2.new(0, Theme.toggleW - Theme.knobSz - 3, 0.5, -Theme.knobSz / 2)
+            or UDim2.new(0, 3, 0.5, -Theme.knobSz / 2),
+        BackgroundColor3 = control.Value and Color3.fromRGB(255, 255, 255) or Theme.knob,
     }
     if instant then
         control.Track.BackgroundColor3 = goalTrack.BackgroundColor3
         control.Knob.Position = goalKnob.Position
+        control.Knob.BackgroundColor3 = goalKnob.BackgroundColor3
         control.KnobScale.Scale = 1
-        control.Outline.Color = control.Value and Theme.accentCyan or Theme.accentDim
-        control.Outline.Transparency = control.Value and 0.12 or 0.38
+        control.Outline.Color = control.Value and Theme.accentSec or Theme.accentDim
+        control.Outline.Transparency = control.Value and 0.10 or 0.32
+        if control.TrackStroke then
+            control.TrackStroke.Color = control.Value and Theme.accentSec or Theme.accentDim
+            control.TrackStroke.Transparency = control.Value and 0.15 or 0.5
+        end
     else
         TweenService:Create(control.Track, Theme.tweenFast, goalTrack):Play()
         TweenService:Create(control.Knob, Theme.tweenSpring, goalKnob):Play()
         TweenService:Create(control.Outline, Theme.tweenMed, {
-            Color = control.Value and Theme.accentCyan or Theme.accentDim,
-            Transparency = control.Value and 0.12 or 0.38,
+            Color = control.Value and Theme.accentSec or Theme.accentDim,
+            Transparency = control.Value and 0.10 or 0.32,
         }):Play()
-        control.KnobScale.Scale = control.Value and 1.16 or 0.88
+        if control.TrackStroke then
+            TweenService:Create(control.TrackStroke, Theme.tweenFast, {
+                Color = control.Value and Theme.accentSec or Theme.accentDim,
+                Transparency = control.Value and 0.15 or 0.5,
+            }):Play()
+        end
+        control.KnobScale.Scale = control.Value and 1.15 or 0.88
         TweenService:Create(control.KnobScale, Theme.tweenSpring, { Scale = 1 }):Play()
     end
 end
@@ -381,42 +393,33 @@ local function makeToggle(self, parent, options)
     local card = makeCard(parent, 44, options.Order)
     local outline = card:FindFirstChildOfClass("UIStroke")
     makeText(card, string.upper(tostring(options.Text or "")), {
-        Size = UDim2.new(1, -72, 1, 0),
-        Font = Enum.Font.GothamBold,
-        TextSize = 13,
+        Size = UDim2.new(1, -76, 1, 0), Font = Enum.Font.GothamBold, TextSize = 13,
     })
     local track = create("Frame", {
-        AnchorPoint = Vector2.new(1, 0.5),
-        Position = UDim2.new(1, -10, 0.5, 0),
+        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0),
         Size = UDim2.new(0, Theme.toggleW, 0, Theme.toggleH),
-        BackgroundColor3 = Theme.toggleOff,
-        BorderSizePixel = 0,
+        BackgroundColor3 = Theme.toggleOff, BorderSizePixel = 0,
     }, card)
     corner(track, UDim.new(1, 0))
+    local trackStroke = create("UIStroke", {
+        Color = Theme.accentDim, Thickness = 1, Transparency = 0.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+    }, track)
     local gradient = create("UIGradient", { Rotation = 15 }, track)
     local knob = create("Frame", {
         Size = UDim2.new(0, Theme.knobSz, 0, Theme.knobSz),
-        BackgroundColor3 = Theme.knob,
-        BorderSizePixel = 0,
+        BackgroundColor3 = Theme.knob, BorderSizePixel = 0,
     }, track)
     corner(knob, UDim.new(1, 0))
-    gloss(knob, 0.2)
+    gloss(knob, 0.16)
     local knobScale = create("UIScale", {}, knob)
     local button = create("TextButton", {
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        AutoButtonColor = false,
-        Text = "",
-        ZIndex = 3,
+        Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
+        AutoButtonColor = false, Text = "", ZIndex = 3,
     }, card)
-    ripple(self, button, 7)
+    ripple(self, button, 9)
     local control = {
-        Frame = card,
-        Track = track,
-        Knob = knob,
-        Gradient = gradient,
-        KnobScale = knobScale,
-        Outline = outline,
+        Frame = card, Track = track, TrackStroke = trackStroke,
+        Knob = knob, Gradient = gradient, KnobScale = knobScale, Outline = outline,
     }
     setToggle(control, options.Value, true)
     connect(self, button.Activated, function()
@@ -450,7 +453,7 @@ end
 
 local function makeInput(self, parent, options)
     local stacked = options.Stacked == true
-    local inputWidth = options.InputWidth or 40
+    local inputWidth = options.InputWidth or 48
     local card = makeCard(parent, options.Height or (stacked and 78 or 44), options.Order)
     makeText(card, string.upper(tostring(options.Text or "")), {
         Size = stacked and UDim2.new(1, -24, 0, 32) or UDim2.new(1, -inputWidth - 32, 1, 0),
@@ -466,11 +469,11 @@ local function makeInput(self, parent, options)
         BorderSizePixel = 0,
         ClipsDescendants = true,
     }, card)
-    corner(field, UDim.new(0, 5))
-    local outline = stroke(field, Theme.accentDim, 1, 0)
+    corner(field, UDim.new(0, 6))
+    local outline = stroke(field, Theme.accentDim, 1, 0.15)
     local box = create("TextBox", {
-        Position = UDim2.new(0, 6, 0, 0),
-        Size = UDim2.new(1, -12, 1, 0),
+        Position = UDim2.new(0, 8, 0, 0),
+        Size = UDim2.new(1, -16, 1, 0),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         ClearTextOnFocus = false,
@@ -486,7 +489,7 @@ local function makeInput(self, parent, options)
     }, field)
     clipInput(self, box)
     connect(self, box.Focused, function()
-        TweenService:Create(outline, Theme.tweenFast, { Color = Theme.accent }):Play()
+        TweenService:Create(outline, Theme.tweenFast, { Color = Theme.accentSec }):Play()
     end)
     connect(self, box.FocusLost, function()
         TweenService:Create(outline, Theme.tweenFast, { Color = Theme.accentDim }):Play()
@@ -498,21 +501,25 @@ local function makeInput(self, parent, options)
 end
 
 local function makeDropdown(self, parent, options)
-    local baseHeight = 74
-    local labelHeight = 32
-    local headY = 35
-    local headHeight = 32
-    local menuY = 74
-    local optionStep = 38
-    local optionHeight = 34
+    local baseHeight, labelHeight, headY, headHeight, menuY, optionStep, optionHeight = 74, 32, 35, 32, 74, 38, 34
     local card = makeCard(parent, baseHeight, options.Order)
     card.ZIndex = 20
     makeText(card, string.upper(tostring(options.Text or "")), {
         Size = UDim2.new(1, -24, 0, labelHeight),
         Position = UDim2.new(0, 12, 0, 0),
+        Font = Enum.Font.GothamBold,
+        TextSize = 13,
         TextTruncate = Enum.TextTruncate.AtEnd,
         ZIndex = 21,
     })
+    local badge = makeText(card, tostring(options.Badge or "RECOMMENDED"), {
+        AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 7),
+        Size = UDim2.new(0, 96, 0, 18), BackgroundTransparency = 0,
+        BackgroundColor3 = Theme.bg3, Font = Enum.Font.GothamBold, TextSize = 9,
+        TextColor3 = Theme.warning, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 22,
+    })
+    corner(badge, UDim.new(1, 0))
+    stroke(badge, Theme.accentDim, 1, 0.42)
     local head = create("TextButton", {
         Position = UDim2.new(0, 10, 0, headY),
         Size = UDim2.new(1, -20, 0, headHeight),
@@ -524,8 +531,8 @@ local function makeDropdown(self, parent, options)
         TextTruncate = Enum.TextTruncate.AtEnd,
         ZIndex = 23,
     }, card)
-    corner(head, UDim.new(0, 5))
-    stroke(head, Theme.accentDim, 1)
+    corner(head, UDim.new(0, 6))
+    stroke(head, Theme.accentDim, 1, 0.2)
     local menu = create("Frame", {
         Position = UDim2.new(0, 10, 0, menuY),
         Size = UDim2.new(1, -20, 0, #options.Items * optionStep - 4),
@@ -533,12 +540,23 @@ local function makeDropdown(self, parent, options)
         Visible = false,
         ZIndex = 40,
     }, card)
+    local optionButtons = {}
     local control = { Frame = card, Button = head, Menu = menu, Value = options.Value, Open = false }
     local function display(value)
         for _, item in ipairs(options.Items) do
             if item.Value == value then return item.Text end
         end
         return tostring(value or "")
+    end
+    local function refreshOptions()
+        for index, item in ipairs(options.Items) do
+            local opt = optionButtons[index]
+            if opt then
+                local selected = item.Value == control.Value
+                opt.BackgroundColor3 = selected and Theme.bg2 or Theme.inputBg
+                opt.TextColor3 = selected and (options.TextColor or Theme.accentCyan) or Theme.textPri
+            end
+        end
     end
     function control:SetOpen(open)
         self.Open = open == true
@@ -549,7 +567,8 @@ local function makeDropdown(self, parent, options)
         end
         self.Menu.Visible = self.Open
         self.Frame.Size = UDim2.new(1, 0, 0, self.Open and baseHeight + 4 + #options.Items * optionStep or baseHeight)
-        self.Button.Text = display(self.Value) .. (self.Open and "  ^" or "  v")
+        self.Button.Text = display(self.Value) .. (self.Open and "  ▲" or "  ▼")
+        refreshOptions()
     end
     function control:Set(value)
         self.Value = value
@@ -568,7 +587,9 @@ local function makeDropdown(self, parent, options)
             TextTruncate = Enum.TextTruncate.AtEnd,
             ZIndex = 41,
         }, menu)
-        corner(option, UDim.new(0, 5))
+        corner(option, UDim.new(0, 6))
+        stroke(option, Theme.accentDim, 1, 0.45)
+        optionButtons[index] = option
         connect(self, option.Activated, function()
             control:Set(item.Value)
             emit(self, options.Callback, item.Value)
@@ -585,20 +606,19 @@ end
 
 local function makeParagraph(parent, title, body, height, order)
     local card = makeCard(parent, height or 74, order)
+    local bar = create("Frame", {
+        Size = UDim2.new(0, 3, 1, -18), Position = UDim2.new(0, 7, 0, 9),
+        BackgroundColor3 = Theme.accentSec, BorderSizePixel = 0,
+    }, card)
+    corner(bar, UDim.new(1, 0))
+    surface(bar, 90)
     makeText(card, string.upper(tostring(title or "")), {
-        Size = UDim2.new(1, -24, 0, 22),
-        Position = UDim2.new(0, 12, 0, 8),
-        Font = Enum.Font.GothamBold,
-        TextSize = 14,
-        TextColor3 = Theme.accentSec,
+        Size = UDim2.new(1, -28, 0, 20), Position = UDim2.new(0, 16, 0, 8),
+        Font = Enum.Font.GothamBlack, TextSize = 12, TextColor3 = Theme.accentSec,
     })
     makeText(card, body, {
-        Size = UDim2.new(1, -24, 1, -36),
-        Position = UDim2.new(0, 12, 0, 32),
-        TextSize = 12,
-        TextColor3 = Theme.textMuted,
-        TextWrapped = true,
-        TextYAlignment = Enum.TextYAlignment.Top,
+        Size = UDim2.new(1, -28, 1, -34), Position = UDim2.new(0, 16, 0, 29),
+        TextSize = 12, TextColor3 = Theme.textMuted, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top,
     })
     return card
 end
@@ -630,27 +650,18 @@ end
 
 local function makePage(parent, scrolling, vertical)
     local page = create(scrolling and "ScrollingFrame" or "Frame", {
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        Visible = false,
-        ScrollBarThickness = scrolling and 2 or nil,
-        ScrollBarImageColor3 = scrolling and Theme.accent or nil,
-        AutomaticCanvasSize = scrolling and Enum.AutomaticSize.Y or nil,
-        CanvasSize = scrolling and UDim2.new() or nil,
+        Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, BorderSizePixel = 0, Visible = false,
+        ScrollBarThickness = scrolling and 2 or nil, ScrollBarImageColor3 = scrolling and Theme.accent or nil,
+        AutomaticCanvasSize = scrolling and Enum.AutomaticSize.Y or nil, CanvasSize = scrolling and UDim2.new() or nil,
     }, parent)
     if scrolling then page.ScrollingDirection = Enum.ScrollingDirection.Y end
     create("UIListLayout", {
-        Padding = UDim.new(0, vertical and 7 or 6),
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        HorizontalAlignment = Enum.HorizontalAlignment.Center,
-        VerticalAlignment = Enum.VerticalAlignment.Top,
+        Padding = UDim.new(0, vertical and 7 or 6), SortOrder = Enum.SortOrder.LayoutOrder,
+        HorizontalAlignment = Enum.HorizontalAlignment.Center, VerticalAlignment = Enum.VerticalAlignment.Top,
     }, page)
     create("UIPadding", {
-        PaddingLeft = UDim.new(0, vertical and 11 or 10),
-        PaddingRight = UDim.new(0, vertical and 11 or 10),
-        PaddingTop = UDim.new(0, vertical and 8 or 10),
-        PaddingBottom = UDim.new(0, vertical and 8 or 10),
+        PaddingLeft = UDim.new(0, vertical and 11 or 10), PaddingRight = UDim.new(0, vertical and 11 or 10),
+        PaddingTop = UDim.new(0, vertical and 8 or 10), PaddingBottom = UDim.new(0, vertical and 8 or 10),
     }, page)
     return page
 end
@@ -663,38 +674,23 @@ local function buildWindow(self)
     if old then old:Destroy() end
 
     view.Gui = create("ScreenGui", {
-        Name = "zelqynhubAutoCode",
-        ResetOnSpawn = false,
-        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        Name = "zelqynhubAutoCode", ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
     }, gethui())
     view.Window = create("Frame", {
         Size = expandedSize(self, self.Options.ActiveTab or 1),
         Position = self.Options.Position or UDim2.new(
-            0.5,
-            -(self.VerticalLayout and Theme.desktopWidth or Theme.mobileWidth) / 2,
-            0.5,
-            -(self.VerticalLayout and TabData[self.Options.ActiveTab or 1][4] or TabData[self.Options.ActiveTab or 1][3]) / 2
+            0.5, -(self.VerticalLayout and Theme.desktopWidth or Theme.mobileWidth) / 2,
+            0.5, -(self.VerticalLayout and TabData[self.Options.ActiveTab or 1][4] or TabData[self.Options.ActiveTab or 1][3]) / 2
         ),
-        BackgroundColor3 = Theme.bg1,
-        BackgroundTransparency = 0,
-        BorderSizePixel = 0,
-        Active = true,
-        ClipsDescendants = true,
+        BackgroundColor3 = Theme.bg1, BackgroundTransparency = 0, BorderSizePixel = 0, Active = true, ClipsDescendants = true,
     }, view.Gui)
     view.Shadow = create("ImageLabel", {
-        Name = "ZelqynShadow",
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        Image = "rbxassetid://6014261993",
-        ImageColor3 = Color3.fromRGB(0, 0, 0),
-        ImageTransparency = 0.3,
-        ScaleType = Enum.ScaleType.Slice,
-        SliceCenter = Rect.new(49, 49, 450, 450),
-        ZIndex = 0,
+        Name = "ZelqynShadow", BackgroundTransparency = 1, BorderSizePixel = 0,
+        Image = "rbxassetid://6014261993", ImageColor3 = Color3.fromRGB(0, 0, 0), ImageTransparency = 0.25,
+        ScaleType = Enum.ScaleType.Slice, SliceCenter = Rect.new(49, 49, 450, 450), ZIndex = 0,
     }, view.Gui)
     local function syncShadow()
-        local position = view.Window.Position
-        local size = view.Window.Size
+        local position, size = view.Window.Position, view.Window.Size
         local scale = view.Scale and view.Scale.Scale or 1
         view.Shadow.Position = UDim2.new(position.X.Scale, position.X.Offset - 22, position.Y.Scale, position.Y.Offset - 14)
         view.Shadow.Size = UDim2.new(size.X.Scale, size.X.Offset * scale + 44, size.Y.Scale, size.Y.Offset * scale + 52)
@@ -702,7 +698,7 @@ local function buildWindow(self)
     syncShadow()
     connect(self, view.Window:GetPropertyChangedSignal("Position"), syncShadow)
     connect(self, view.Window:GetPropertyChangedSignal("Size"), syncShadow)
-    corner(view.Window, UDim.new(0, 12))
+    corner(view.Window, UDim.new(0, 14))
     stroke(view.Window, Theme.accentDim, 1)
     view.Scale = create("UIScale", { Scale = 0.92 }, view.Window)
     connect(self, view.Scale:GetPropertyChangedSignal("Scale"), syncShadow)
@@ -716,16 +712,11 @@ local function buildWindow(self)
         Rotation = 125,
     }, view.Window)
     view.Background = create("ImageLabel", {
-        Name = "ZelqynBackground",
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        Image = Theme.backgroundAsset,
-        ImageTransparency = 0.24,
-        ScaleType = Enum.ScaleType.Crop,
-        ZIndex = 1,
+        Name = "ZelqynBackground", Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
+        BorderSizePixel = 0, Image = Theme.backgroundAsset, ImageTransparency = 0.28,
+        ScaleType = Enum.ScaleType.Crop, ZIndex = 1,
     }, view.Window)
-    corner(view.Background, UDim.new(0, 12))
+    corner(view.Background, UDim.new(0, 14))
     create("UIGradient", {
         Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0, Color3.fromRGB(80, 102, 255)),
@@ -733,20 +724,16 @@ local function buildWindow(self)
             ColorSequenceKeypoint.new(1, Color3.fromRGB(237, 54, 255)),
         }),
         Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0.48),
-            NumberSequenceKeypoint.new(0.5, 0.18),
-            NumberSequenceKeypoint.new(1, 0.42),
+            NumberSequenceKeypoint.new(0, 0.52),
+            NumberSequenceKeypoint.new(0.5, 0.22),
+            NumberSequenceKeypoint.new(1, 0.46),
         }),
         Rotation = 135,
     }, view.Background)
 
     view.PumpkinLayer = create("Frame", {
-        Name = "PumpkinRain",
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        ClipsDescendants = true,
-        ZIndex = 2,
+        Name = "PumpkinRain", Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
+        BorderSizePixel = 0, ClipsDescendants = true, ZIndex = 2,
     }, view.Window)
     view.Pumpkins = {}
     local pumpkinSpecs = {
@@ -758,28 +745,17 @@ local function buildWindow(self)
     }
     for index, spec in ipairs(pumpkinSpecs) do
         local label = create("TextLabel", {
-            AnchorPoint = Vector2.new(0.5, 0.5),
-            Position = UDim2.fromScale(spec[1], spec[2]),
-            Size = UDim2.fromOffset(spec[3] + 8, spec[3] + 8),
-            BackgroundTransparency = 1,
-            BorderSizePixel = 0,
-            Font = Enum.Font.GothamBold,
-            Text = "🎃",
-            TextSize = spec[3],
-            TextTransparency = 0.28,
-            ZIndex = 2,
+            AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(spec[1], spec[2]),
+            Size = UDim2.fromOffset(spec[3] + 8, spec[3] + 8), BackgroundTransparency = 1,
+            BorderSizePixel = 0, Font = Enum.Font.GothamBold, Text = "🎃",
+            TextSize = spec[3], TextTransparency = 0.32, ZIndex = 2,
         }, view.PumpkinLayer)
-        view.Pumpkins[index] = {
-            Label = label, X = spec[1], Y = spec[2], Speed = spec[4], Phase = index * 0.71,
-        }
+        view.Pumpkins[index] = { Label = label, X = spec[1], Y = spec[2], Speed = spec[4], Phase = index * 0.71 }
     end
 
     local glowStroke = create("UIStroke", {
-        Color = Theme.accentSec,
-        Thickness = 2,
-        Transparency = 0.08,
-        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-        LineJoinMode = Enum.LineJoinMode.Round,
+        Color = Theme.accentSec, Thickness = 2, Transparency = 0.08,
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border, LineJoinMode = Enum.LineJoinMode.Round,
     }, view.Window)
     view.Glow = create("UIGradient", {
         Color = ColorSequence.new({
@@ -790,37 +766,26 @@ local function buildWindow(self)
             ColorSequenceKeypoint.new(1, Theme.accent),
         }),
         Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0.92),
-            NumberSequenceKeypoint.new(0.39, 0.88),
-            NumberSequenceKeypoint.new(0.5, 0),
-            NumberSequenceKeypoint.new(0.61, 0.88),
+            NumberSequenceKeypoint.new(0, 0.92), NumberSequenceKeypoint.new(0.39, 0.88),
+            NumberSequenceKeypoint.new(0.5, 0), NumberSequenceKeypoint.new(0.61, 0.88),
             NumberSequenceKeypoint.new(1, 0.92),
         }),
     }, glowStroke)
     local auraStroke = create("UIStroke", {
-        Color = Theme.accent,
-        Thickness = 5,
-        Transparency = 0.58,
-        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-        LineJoinMode = Enum.LineJoinMode.Round,
+        Color = Theme.accent, Thickness = 5, Transparency = 0.58,
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border, LineJoinMode = Enum.LineJoinMode.Round,
     }, view.Window)
     view.Aura = view.Glow:Clone()
     view.Aura.Transparency = NumberSequence.new({
-        NumberSequenceKeypoint.new(0, 1),
-        NumberSequenceKeypoint.new(0.4, 0.96),
-        NumberSequenceKeypoint.new(0.5, 0.46),
-        NumberSequenceKeypoint.new(0.6, 0.96),
+        NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.4, 0.96),
+        NumberSequenceKeypoint.new(0.5, 0.46), NumberSequenceKeypoint.new(0.6, 0.96),
         NumberSequenceKeypoint.new(1, 1),
     })
     view.Aura.Parent = auraStroke
 
     view.Header = create("Frame", {
-        Size = UDim2.new(1, 0, 0, headerHeight),
-        BackgroundColor3 = Theme.bg0,
-        BorderSizePixel = 0,
-        Active = true,
-        Selectable = true,
-        ZIndex = 4,
+        Size = UDim2.new(1, 0, 0, headerHeight), BackgroundColor3 = Theme.bg0,
+        BorderSizePixel = 0, Active = true, Selectable = true, ZIndex = 4,
     }, view.Window)
     create("UIGradient", {
         Color = ColorSequence.new({
@@ -831,60 +796,31 @@ local function buildWindow(self)
         Rotation = 12,
     }, view.Header)
     local mark = create("TextLabel", {
-        Size = UDim2.new(0, 32, 0, 32),
-        Position = UDim2.new(0, 9, 0.5, -16),
-        BackgroundColor3 = Color3.fromRGB(10, 5, 43),
-        BorderSizePixel = 0,
-        Font = Enum.Font.GothamBlack,
-        TextSize = 21,
-        TextColor3 = Theme.activeTabText,
-        Text = "Z",
+        Size = UDim2.new(0, 34, 0, 34), Position = UDim2.new(0, 10, 0.5, -17),
+        BackgroundColor3 = Color3.fromRGB(12, 6, 46), BorderSizePixel = 0,
+        Font = Enum.Font.GothamBlack, TextSize = 20, TextColor3 = Theme.activeTabText, Text = "Z",
     }, view.Header)
     corner(mark, UDim.new(1, 0))
-    stroke(mark, Theme.accentSec, 1)
+    stroke(mark, Theme.accentSec, 1.5, 0.12)
     surface(mark, 25)
     create("ImageLabel", {
-        Size = UDim2.new(1, -4, 1, -4),
-        Position = UDim2.new(0, 2, 0, 2),
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        Image = Theme.logoAsset,
-        ScaleType = Enum.ScaleType.Fit,
-        ZIndex = mark.ZIndex + 1,
+        Size = UDim2.new(1, -4, 1, -4), Position = UDim2.new(0, 2, 0, 2),
+        BackgroundTransparency = 1, BorderSizePixel = 0, Image = Theme.logoAsset,
+        ScaleType = Enum.ScaleType.Fit, ZIndex = mark.ZIndex + 1,
     }, mark)
     local title = makeText(view.Header, string.upper(UiLib.Name), {
-        Size = UDim2.new(0, 190, 0, 21),
-        Position = UDim2.new(0, 49, 0, 5),
-        Font = Enum.Font.GothamBlack,
-        TextSize = 16,
+        Size = UDim2.new(0, 190, 0, 20), Position = UDim2.new(0, 52, 0, 7),
+        Font = Enum.Font.GothamBlack, TextSize = 15,
     })
     surface(title, 0)
     view.Mode = makeText(view.Header, "CODE REDEEMER", {
-        Size = UDim2.new(0, 190, 0, 15),
-        Position = UDim2.new(0, 49, 0, 28),
-        Font = Enum.Font.GothamMedium,
-        TextSize = 11,
-        TextColor3 = Theme.textMuted,
+        Size = UDim2.new(0, 190, 0, 14), Position = UDim2.new(0, 52, 0, 27),
+        Font = Enum.Font.GothamBold, TextSize = 10, TextColor3 = Theme.accentCyan,
     })
-    local ready = makeText(view.Header, "READY", {
-        Size = UDim2.new(0, 50, 0, 22),
-        AnchorPoint = Vector2.new(1, 0.5),
-        Position = UDim2.new(1, -43, 0.5, 0),
-        BackgroundTransparency = 0,
-        BackgroundColor3 = Theme.bg2,
-        Font = Enum.Font.GothamBold,
-        TextSize = 11,
-        TextColor3 = Theme.accentCyan,
-        TextXAlignment = Enum.TextXAlignment.Center,
-    })
-    corner(ready, UDim.new(0, 7))
-    surface(ready, 12)
+    view.HeaderReady = makePillBadge(view.Header, "ONLINE", Theme.accentCyan, Theme.bg2, UDim2.new(1, -44, 0.5, 0), UDim2.new(0, 58, 0, 22), 5)
     view.AccentLine = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 2),
-        Position = UDim2.new(0, 0, 1, -2),
-        BackgroundColor3 = Theme.accent,
-        BackgroundTransparency = 0.08,
-        BorderSizePixel = 0,
+        Size = UDim2.new(1, 0, 0, 2), Position = UDim2.new(0, 0, 1, -2),
+        BackgroundColor3 = Theme.accent, BackgroundTransparency = 0.08, BorderSizePixel = 0,
     }, view.Header)
     view.AccentGradient = create("UIGradient", {
         Color = ColorSequence.new({
@@ -897,80 +833,57 @@ local function buildWindow(self)
         Offset = Vector2.new(-0.82, 0),
     }, view.AccentLine)
     view.Minimize = create("TextButton", {
-        Size = UDim2.new(0, 26, 0, 26),
-        AnchorPoint = Vector2.new(1, 0.5),
-        Position = UDim2.new(1, -9, 0.5, 0),
-        BackgroundColor3 = Theme.bg2,
-        BorderSizePixel = 0,
-        Font = Enum.Font.GothamBold,
-        TextSize = 13,
-        TextColor3 = Theme.textPri,
-        Text = "-",
+        Size = UDim2.new(0, 28, 0, 28), AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -9, 0.5, 0),
+        BackgroundColor3 = Theme.bg2, BorderSizePixel = 0, Font = Enum.Font.GothamBlack,
+        TextSize = 14, TextColor3 = Theme.textPri, Text = "—",
     }, view.Header)
-    corner(view.Minimize, UDim.new(0, 7))
-    stroke(view.Minimize, Theme.accentDim, 1)
+    corner(view.Minimize, UDim.new(1, 0))
+    stroke(view.Minimize, Theme.accentDim, 1, 0.25)
     surface(view.Minimize, 15)
 
     view.Nav = create("Frame", {
-        Position = UDim2.new(0, 0, 0, headerHeight),
-        Size = UDim2.new(1, 0, 0, navHeight),
-        BackgroundColor3 = Theme.bg0,
-        BackgroundTransparency = 0,
-        BorderSizePixel = 0,
-        ZIndex = 4,
+        Position = UDim2.new(0, 0, 0, headerHeight), Size = UDim2.new(1, 0, 0, navHeight),
+        BackgroundColor3 = Theme.bg0, BackgroundTransparency = 0.04, BorderSizePixel = 0, ZIndex = 4,
     }, view.Window)
     surface(view.Nav, 90)
     create("UIPadding", {
-        PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6),
+        PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8),
         PaddingTop = UDim.new(0, 6), PaddingBottom = UDim.new(0, 6),
     }, view.Nav)
     create("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
-        Padding = UDim.new(0, 3), SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder,
         HorizontalAlignment = Enum.HorizontalAlignment.Center,
         VerticalAlignment = Enum.VerticalAlignment.Center,
     }, view.Nav)
     view.Divider = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 1),
-        Position = UDim2.new(0, 0, 0, headerHeight + navHeight),
-        BackgroundColor3 = Theme.accentDim,
-        BackgroundTransparency = 0.45,
-        BorderSizePixel = 0,
-        ZIndex = 4,
+        Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, headerHeight + navHeight),
+        BackgroundColor3 = Theme.accentDim, BackgroundTransparency = 0.42, BorderSizePixel = 0, ZIndex = 4,
     }, view.Window)
     view.Content = create("Frame", {
         Position = UDim2.new(0, 0, 0, headerHeight + navHeight + 1),
         Size = UDim2.new(1, 0, 1, -(headerHeight + navHeight + 1)),
-        BackgroundTransparency = 1,
-        ZIndex = 3,
+        BackgroundTransparency = 1, ZIndex = 3,
     }, view.Window)
     for index, tab in ipairs(TabData) do
         local button = create("TextButton", {
-            Size = UDim2.new(1 / #TabData, -5, 0, 32),
-            LayoutOrder = index,
-            BackgroundColor3 = Theme.bg0,
-            BorderSizePixel = 0,
-            AutoButtonColor = false,
-            Font = Enum.Font.GothamBold,
-            TextSize = 12,
-            TextScaled = true,
-            TextColor3 = Theme.textMuted,
-            Text = tab[1],
+            Size = UDim2.new(1 / #TabData, -5, 0, 30), LayoutOrder = index,
+            BackgroundColor3 = Theme.bg3, BorderSizePixel = 0, AutoButtonColor = false,
+            Font = Enum.Font.GothamBold, TextSize = 11, TextScaled = true,
+            TextColor3 = Theme.textMuted, Text = tab[1],
         }, view.Nav)
-        create("UITextSizeConstraint", { MinTextSize = 9, MaxTextSize = 12 }, button)
-        corner(button)
-        stroke(button, Theme.accentDim, 1, 0.58)
+        create("UITextSizeConstraint", { MinTextSize = 9, MaxTextSize = 11 }, button)
+        corner(button, UDim.new(0, 8))
+        local tabStroke = stroke(button, Theme.accentDim, 1, 0.52)
         surface(button, 12)
         local indicator = create("Frame", {
-            AnchorPoint = Vector2.new(0.5, 1),
-            Position = UDim2.new(0.5, 0, 1, 0),
-            Size = UDim2.new(0.62, 0, 0, 2),
-            BackgroundColor3 = Theme.accentSec,
-            BorderSizePixel = 0,
-            Visible = false,
+            AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -1),
+            Size = UDim2.new(0.58, 0, 0, 2), BackgroundColor3 = Theme.accentSec,
+            BorderSizePixel = 0, Visible = false,
         }, button)
         corner(indicator, UDim.new(1, 0))
         view.TabButtons[index] = button
+        view.TabStrokes[index] = tabStroke
         view.Indicators[index] = indicator
         view.Pages[index] = makePage(view.Content, index ~= 4, self.VerticalLayout)
         connect(self, button.Activated, function() self:SetTab(index) end)
@@ -978,7 +891,7 @@ local function buildWindow(self)
             if self.ActiveTab ~= index then TweenService:Create(button, Theme.tweenFast, { BackgroundColor3 = Theme.hover }):Play() end
         end)
         connect(self, button.MouseLeave, function()
-            if self.ActiveTab ~= index then TweenService:Create(button, Theme.tweenFast, { BackgroundColor3 = Theme.bg0 }):Play() end
+            if self.ActiveTab ~= index then TweenService:Create(button, Theme.tweenFast, { BackgroundColor3 = Theme.bg3 }):Play() end
         end)
     end
 end
@@ -1026,9 +939,13 @@ function Controller:SetTab(index, instant)
     for current = 1, #TabData do
         local active = current == index
         self.View.Pages[current].Visible = active
-        self.View.TabButtons[current].BackgroundColor3 = active and Theme.accentDim or Theme.bg0
+        self.View.TabButtons[current].BackgroundColor3 = active and Theme.accentDim or Theme.bg3
         self.View.TabButtons[current].TextColor3 = active and Theme.activeTabText or Theme.textMuted
         self.View.Indicators[current].Visible = active
+        if self.View.TabStrokes[current] then
+            self.View.TabStrokes[current].Color = active and Theme.accentSec or Theme.accentDim
+            self.View.TabStrokes[current].Transparency = active and 0.14 or 0.52
+        end
     end
     self.View.Mode.Text = TabData[index][2]
     if not self.Minimized then
@@ -1056,7 +973,7 @@ function Controller:SetMinimized(value, instant)
     self.View.Nav.Visible = not self.Minimized
     self.View.Divider.Visible = not self.Minimized
     self.View.Content.Visible = not self.Minimized
-    self.View.Minimize.Text = self.Minimized and "+" or "-"
+    self.View.Minimize.Text = self.Minimized and "+" or "—"
     local size = self.Minimized and collapsedSize(self) or expandedSize(self, self.ActiveTab)
     if instant then
         self.View.Window.Size = size
@@ -1131,89 +1048,116 @@ local function wireWindow(self)
         self.View.AccentGradient.Offset = Vector2.new(-0.82 + 1.64 * phase, 0)
         local edge = math.min(phase, 1 - phase) * 2
         self.View.AccentLine.BackgroundTransparency = 0.08 + 0.92 * (1 - math.clamp(edge / 0.13, 0, 1))
+        if self.View.StatusHalo then
+            local pulse = 0.5 + 0.5 * math.sin(now * 3.4)
+            self.View.StatusHalo.BackgroundTransparency = 0.68 + 0.22 * pulse
+        end
     end)
 end
 
 local function buildHome(self)
     local page = self.View.Pages[1]
     local statusCard = makeCard(page, 40, 1)
-    local statusDot = create("Frame", {
-        Size = UDim2.new(0, 8, 0, 8),
-        Position = UDim2.new(0, 13, 0.5, -4),
-        BackgroundColor3 = Theme.accentCyan,
-        BorderSizePixel = 0,
+    statusCard.BackgroundColor3 = Theme.bg3
+    self.View.StatusHalo = create("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.new(0, 18, 0, 18), Position = UDim2.new(0, 19, 0.5, 0),
+        BackgroundColor3 = Theme.accentCyan, BackgroundTransparency = 0.76, BorderSizePixel = 0,
     }, statusCard)
-    corner(statusDot, UDim.new(1, 0))
-    surface(statusDot, 0)
-    self.View.ScanStatus = makeText(statusCard, "READY  ·  CODE REDEEMER ONLINE", {
-        Size = UDim2.new(1, -38, 1, 0),
-        Position = UDim2.new(0, 29, 0, 0),
-        Font = Enum.Font.GothamBold,
-        TextSize = 12,
-        TextColor3 = Theme.textMuted,
-        TextTruncate = Enum.TextTruncate.AtEnd,
+    corner(self.View.StatusHalo, UDim.new(1, 0))
+    self.View.StatusDot = create("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.new(0, 8, 0, 8), Position = UDim2.new(0, 19, 0.5, 0),
+        BackgroundColor3 = Theme.accentCyan, BorderSizePixel = 0,
+    }, statusCard)
+    corner(self.View.StatusDot, UDim.new(1, 0))
+    self.View.ScanStatus = makeText(statusCard, "READY  ·  PRESS " .. self.KeyCode.Name .. " TO CLAIM AI", {
+        Size = UDim2.new(1, -106, 1, 0), Position = UDim2.new(0, 34, 0, 0),
+        Font = Enum.Font.GothamBold, TextSize = 12, TextColor3 = Theme.accentCyan, TextTruncate = Enum.TextTruncate.AtEnd,
     })
-    local actions = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 96),
-        BackgroundTransparency = 1,
-        LayoutOrder = 2,
-    }, page)
-    local actionHeight = 44
-    local actionOffset = 52
+    self.View.ScanBadge = makePillBadge(statusCard, "ONLINE", Theme.accentCyan, Theme.bg2, UDim2.new(1, -8, 0.5, 0), UDim2.new(0, 62, 0, 20), 4)
+
+    local messageCard = makeCard(page, 74, 2)
+    makeText(messageCard, "LAST DETECTED", {
+        Size = UDim2.new(1, -96, 0, 18), Position = UDim2.new(0, 12, 0, 6),
+        Font = Enum.Font.GothamBlack, TextSize = 10, TextColor3 = Theme.accentSec,
+    })
+    local hasInitialMsg = self.Options.LastMessage and self.Options.LastMessage ~= ""
+    self.View.LastDetectedBadge = makePillBadge(
+        messageCard, hasInitialMsg and "CAPTURED" or "STANDBY",
+        hasInitialMsg and Theme.accentCyan or Theme.textMuted, Theme.bg3,
+        UDim2.new(1, -10, 0, 15), UDim2.new(0, 68, 0, 18), 4
+    )
+    local messageBox = create("Frame", {
+        Position = UDim2.new(0, 10, 0, 28), Size = UDim2.new(1, -20, 0, 38),
+        BackgroundColor3 = Theme.inputBg, BorderSizePixel = 0, ClipsDescendants = true,
+    }, messageCard)
+    corner(messageBox, UDim.new(0, 7))
+    stroke(messageBox, Theme.accentDim, 1, 0.22)
+    local msgBar = create("Frame", {
+        Size = UDim2.new(0, 3, 1, -12), Position = UDim2.new(0, 6, 0, 6),
+        BackgroundColor3 = Theme.accentSec, BorderSizePixel = 0,
+    }, messageBox)
+    corner(msgBar, UDim.new(1, 0))
+    self.View.LastMessage = makeText(messageBox, hasInitialMsg and self.Options.LastMessage or "Waiting for a notification...", {
+        Size = UDim2.new(1, -24, 1, 0), Position = UDim2.new(0, 15, 0, 0),
+        Font = Enum.Font.GothamBold, TextSize = 13,
+        TextColor3 = hasInitialMsg and Theme.textPri or Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
+    })
+
+    local actions = create("Frame", { Size = UDim2.new(1, 0, 0, 86), BackgroundTransparency = 1, LayoutOrder = 3 }, page)
     makeButton(self, actions, {
         Text = "START SCAN", Callback = "StartScan", TextColor = Theme.accentCyan,
-        Size = UDim2.new(0.5, -3, 0, actionHeight), Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(0.333, -4, 0, 40), Position = UDim2.new(0, 0, 0, 0),
     })
     makeButton(self, actions, {
         Text = "FORCE AI", Callback = "ForceAI", TextColor = Theme.accentSec,
-        Size = UDim2.new(0.5, -3, 0, actionHeight), Position = UDim2.new(0.5, 3, 0, 0),
+        Size = UDim2.new(0.333, -4, 0, 40), Position = UDim2.new(0.333, 2, 0, 0),
     })
     makeButton(self, actions, {
         Text = "CANCEL ALL", Callback = "CancelAll", TextColor = Theme.danger,
-        Size = UDim2.new(0.5, -3, 0, actionHeight), Position = UDim2.new(0, 0, 0, actionOffset),
+        Size = UDim2.new(0.334, -4, 0, 40), Position = UDim2.new(0.666, 4, 0, 0),
     })
     makeButton(self, actions, {
-        Text = "CLAIM LAST AI", Callback = "ClaimLastAI", TextColor = Theme.bg0, Bold = true,
-        Color = Theme.accentSec, Primary = true,
-        Size = UDim2.new(0.5, -3, 0, actionHeight), Position = UDim2.new(0.5, 3, 0, actionOffset),
+        Text = "CLAIM LAST AI", Callback = "ClaimLastAI", TextColor = Theme.activeTabText,
+        Bold = true, Primary = true, TextSize = 13,
+        Size = UDim2.new(1, 0, 0, 40), Position = UDim2.new(0, 0, 0, 46),
     })
 
-    local messageCard = makeCard(page, 64, 3)
-    makeText(messageCard, "LAST DETECTED", {
-        Size = UDim2.new(1, -88, 0, 18),
-        Position = UDim2.new(0, 16, 0, 7),
-        Font = Enum.Font.GothamBold,
-        TextSize = 11,
-        TextColor3 = Theme.accentSec,
+    self.Controls.AutoCode = makeToggle(self, page, {
+        Text = "AUTO ENTER CODE", Value = self.State.AutoCode, Order = 4, Callback = "AutoCodeChanged",
     })
-    create("Frame", {
-        Size = UDim2.new(0, 3, 1, -12), Position = UDim2.new(0, 7, 0, 6),
-        BackgroundColor3 = Theme.accent, BorderSizePixel = 0,
-    }, messageCard)
-    self.View.LastMessage = makeText(messageCard, self.Options.LastMessage ~= "" and self.Options.LastMessage or "Waiting for a notification...", {
-        Size = UDim2.new(1, -28, 0, 27),
-        Position = UDim2.new(0, 16, 0, 29),
-        TextSize = 13,
-        TextColor3 = Theme.textMuted,
-        TextTruncate = Enum.TextTruncate.AtEnd,
-    })
+
+    local keyCard = makeCard(page, 44, 5)
+    makeText(keyCard, "CLAIM AI KEY", { Size = UDim2.new(1, -120, 1, 0), Font = Enum.Font.GothamBold, TextSize = 13 })
     self.View.KeyButton = create("TextButton", {
-        AnchorPoint = Vector2.new(1, 0),
-        Position = UDim2.new(1, -8, 0, 5),
-        Size = UDim2.new(0, 54, 0, 23),
-        BackgroundColor3 = Theme.bg2,
-        BorderSizePixel = 0,
-        AutoButtonColor = false,
-        Font = Enum.Font.GothamBold,
-        TextSize = 11,
-        TextColor3 = Theme.accentSec,
-        Text = self.KeyCode.Name,
-    }, messageCard)
+        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -42, 0.5, 0), Size = UDim2.new(0, 66, 0, 28),
+        BackgroundColor3 = Theme.inputBg, BorderSizePixel = 0, AutoButtonColor = false,
+        Font = Enum.Font.GothamBlack, TextSize = 12, TextColor3 = Theme.accentSec, Text = self.KeyCode.Name,
+    }, keyCard)
     corner(self.View.KeyButton, UDim.new(0, 6))
-    stroke(self.View.KeyButton, Theme.accentDim, 1)
+    stroke(self.View.KeyButton, Theme.accentDim, 1, 0.2)
+    hover(self, self.View.KeyButton, self.View.KeyButton, Theme.inputBg, Theme.hover)
+    local resetKey = create("TextButton", {
+        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), Size = UDim2.new(0, 28, 0, 28),
+        BackgroundColor3 = Theme.inputBg, BorderSizePixel = 0, AutoButtonColor = false,
+        Font = Enum.Font.GothamBlack, TextSize = 12, TextColor3 = Theme.textMuted, Text = "X",
+    }, keyCard)
+    corner(resetKey, UDim.new(0, 6))
+    stroke(resetKey, Theme.accentDim, 1, 0.3)
+    hover(self, resetKey, resetKey, Theme.inputBg, Theme.hover)
     connect(self, self.View.KeyButton.Activated, function()
         self.WaitingForKey = not self.WaitingForKey
-        self.View.KeyButton.Text = self.WaitingForKey and "PRESS" or self.KeyCode.Name
+        self.View.KeyButton.Text = self.WaitingForKey and "PRESS..." or self.KeyCode.Name
+        self.View.KeyButton.TextColor3 = self.WaitingForKey and Theme.warning or Theme.accentSec
+    end)
+    connect(self, resetKey.Activated, function()
+        self.WaitingForKey = false
+        self.KeyCode = Enum.KeyCode.F6
+        self.View.KeyButton.Text = self.KeyCode.Name
+        self.View.KeyButton.TextColor3 = Theme.accentSec
+        if self.View.ScanStatus and self.View.ScanStatus.Text:find("PRESS ", 1, true) then
+            self.View.ScanStatus.Text = "READY  ·  PRESS " .. self.KeyCode.Name .. " TO CLAIM AI"
+        end
+        emit(self, "ClaimKeyChanged", self.KeyCode)
     end)
     connect(self, UserInputService.InputBegan, function(input, processed)
         if self.WaitingForKey then
@@ -1221,86 +1165,82 @@ local function buildHome(self)
             self.WaitingForKey = false
             if input.KeyCode ~= Enum.KeyCode.Escape and input.KeyCode ~= Enum.KeyCode.Unknown then
                 self.KeyCode = input.KeyCode
+                if self.View.ScanStatus and self.View.ScanStatus.Text:find("PRESS ", 1, true) then
+                    self.View.ScanStatus.Text = "READY  ·  PRESS " .. self.KeyCode.Name .. " TO CLAIM AI"
+                end
                 emit(self, "ClaimKeyChanged", input.KeyCode)
             end
             self.View.KeyButton.Text = self.KeyCode.Name
+            self.View.KeyButton.TextColor3 = Theme.accentSec
             return
         end
         if processed or UserInputService:GetFocusedTextBox() then return end
         if input.KeyCode == self.KeyCode then emit(self, "ClaimLastAI") end
     end)
 
-    self.Controls.AutoCode = makeToggle(self, page, {
-        Text = "AUTO ENTER CODE", Value = self.State.AutoCode, Order = 4, Callback = "AutoCodeChanged",
-    })
     self.Controls.RedeemMethod = makeDropdown(self, page, {
-        Text = "REDEEM METHOD", Value = self.State.RedeemMethod, Order = 5,
-        TextColor = Theme.accentCyan, Callback = "RedeemMethodChanged",
-        Items = {
-            { Text = "FireSignal", Value = "FireSignal" },
-            { Text = "Remote", Value = "Remote" },
-        },
+        Text = "REDEEM METHOD", Value = self.State.RedeemMethod, Order = 6,
+        TextColor = Theme.accentCyan, Callback = "RedeemMethodChanged", Badge = "RECOMMENDED",
+        Items = { { Text = "FireSignal", Value = "FireSignal" }, { Text = "Remote", Value = "Remote" } },
     })
     makeButton(self, page, {
-        Text = "COPY DISCORD", Callback = "CopyDiscord", Order = 6,
-        TextColor = Theme.accentSec, Bold = true,
+        Text = "COPY DISCORD INVITE", Callback = "CopyDiscord", Order = 7,
+        TextColor = Theme.accentSec, Bold = true, Height = 40,
     })
 end
 
 local function buildRules(self)
     local page = self.View.Pages[2]
-    local card = makeCard(page, 210, 1)
-    makeText(card, "NORMAL TRIGGERS  ·  BLANK = NONE", { Size = UDim2.new(1, -24, 0, 38), TextSize = 13 })
+    local card = makeCard(page, 212, 1)
+    makeText(card, "NORMAL TRIGGERS", { Size = UDim2.new(1, -130, 0, 36), Font = Enum.Font.GothamBlack, TextSize = 13 })
+    makePillBadge(card, "BLANK = NONE", Theme.accentCyan, Theme.bg3, UDim2.new(1, -10, 0, 18), UDim2.new(0, 96, 0, 18), 4)
     create("Frame", {
-        Size = UDim2.new(1, -16, 0, 1), Position = UDim2.new(0, 8, 0, 38),
+        Size = UDim2.new(1, -16, 0, 1), Position = UDim2.new(0, 8, 0, 36),
         BackgroundColor3 = Theme.accentDim, BorderSizePixel = 0,
     }, card)
     local scroll = create("ScrollingFrame", {
-        Size = UDim2.new(1, -8, 0, 158), Position = UDim2.new(0, 4, 0, 44),
+        Size = UDim2.new(1, -12, 0, 162), Position = UDim2.new(0, 6, 0, 42),
         BackgroundColor3 = Theme.bg3, BackgroundTransparency = 0,
         BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = Theme.accentSec,
         AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ClipsDescendants = true,
     }, card)
-    corner(scroll, UDim.new(0, 5))
+    corner(scroll, UDim.new(0, 7))
     create("UIListLayout", {
-        Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 5), SortOrder = Enum.SortOrder.LayoutOrder,
         HorizontalAlignment = Enum.HorizontalAlignment.Center,
     }, scroll)
     create("UIPadding", {
-        PaddingLeft = UDim.new(0, 5), PaddingRight = UDim.new(0, 5),
-        PaddingTop = UDim.new(0, 5), PaddingBottom = UDim.new(0, 5),
+        PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6),
+        PaddingTop = UDim.new(0, 6), PaddingBottom = UDim.new(0, 6),
     }, scroll)
     for index = 1, 10 do
         local slot = create("Frame", {
-            Size = UDim2.new(1, 0, 0, 30), BackgroundColor3 = Theme.inputBg,
-            BackgroundTransparency = 0, BorderSizePixel = 0, LayoutOrder = index,
-            ClipsDescendants = true,
+            Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = Theme.inputBg,
+            BackgroundTransparency = 0, BorderSizePixel = 0, LayoutOrder = index, ClipsDescendants = true,
         }, scroll)
-        corner(slot, UDim.new(0, 4))
-        local outline = stroke(slot, Theme.accentDim, 1, 0)
-        makeText(slot, tostring(index), {
-            Size = UDim2.new(0, 14, 1, 0), Position = UDim2.new(0, 4, 0, 0),
-            Font = Enum.Font.GothamBold, TextSize = 11, TextColor3 = Theme.textMuted,
+        corner(slot, UDim.new(0, 6))
+        local outline = stroke(slot, Theme.accentDim, 1, 0.25)
+        local badge = makeText(slot, string.format("%02d", index), {
+            Size = UDim2.new(0, 22, 0, 20), Position = UDim2.new(0, 6, 0.5, -10),
+            BackgroundTransparency = 0, BackgroundColor3 = Theme.bg2,
+            Font = Enum.Font.GothamBlack, TextSize = 10, TextColor3 = Theme.accentCyan,
             TextXAlignment = Enum.TextXAlignment.Center,
         })
+        corner(badge, UDim.new(0, 5))
         local box = create("TextBox", {
-            Size = UDim2.new(1, -22, 1, -4), Position = UDim2.new(0, 20, 0, 2),
+            Size = UDim2.new(1, -40, 1, -4), Position = UDim2.new(0, 34, 0, 2),
             BackgroundTransparency = 1, BorderSizePixel = 0, ClearTextOnFocus = false,
             Font = Enum.Font.GothamBold, TextSize = 13, TextColor3 = Theme.textPri,
             PlaceholderText = "keyword " .. index, PlaceholderColor3 = Theme.textMuted,
             TextXAlignment = Enum.TextXAlignment.Left, Text = (self.Options.Keywords or {})[index] or "",
         }, slot)
         clipInput(self, box)
-        connect(self, box.Focused, function()
-            TweenService:Create(outline, Theme.tweenFast, { Color = Theme.accent }):Play()
-        end)
+        connect(self, box.Focused, function() TweenService:Create(outline, Theme.tweenFast, { Color = Theme.accentSec }):Play() end)
         connect(self, box.FocusLost, function()
             TweenService:Create(outline, Theme.tweenFast, { Color = Theme.accentDim }):Play()
             emit(self, "KeywordChanged", index, box.Text)
         end)
-        connect(self, box:GetPropertyChangedSignal("Text"), function()
-            emit(self, "KeywordEdited", index, box.Text)
-        end)
+        connect(self, box:GetPropertyChangedSignal("Text"), function() emit(self, "KeywordEdited", index, box.Text) end)
     end
 end
 
@@ -1310,7 +1250,7 @@ local function buildAI(self)
         Text = "Use AI Answers", Value = self.State.AIAnswers, Order = 1, Callback = "AIAnswersChanged",
     })
     self.Controls.AIModel = makeDropdown(self, page, {
-        Text = "AI Model", Value = self.State.AIModel, Order = 2, Callback = "AIModelChanged",
+        Text = "AI Model", Value = self.State.AIModel, Order = 2, Callback = "AIModelChanged", Badge = "FASTEST",
         Items = {
             { Text = "3.5 Flash Lite", Value = "google/gemini-3.5-flash-lite" },
             { Text = "3.7 Flash", Value = "google/gemini-3.7-flash" },
@@ -1322,20 +1262,12 @@ local function buildAI(self)
         Order = 3, Callback = "AITriggersChanged",
     })
     self.Controls.MinCharacters = makeInput(self, page, {
-        Text = "Min Characters", Value = self.State.MinCharacters, Order = 4,
-        Callback = "MinCharactersChanged",
+        Text = "Min Characters", Value = self.State.MinCharacters, Order = 4, Callback = "MinCharactersChanged",
     })
     self.Controls.MinSpaces = makeInput(self, page, {
-        Text = "Min Spaces", Value = self.State.MinSpaces, Order = 5,
-        Callback = "MinSpacesChanged",
+        Text = "Min Spaces", Value = self.State.MinSpaces, Order = 5, Callback = "MinSpacesChanged",
     })
-    makeParagraph(
-        page,
-        "AI RESPONSE ENGINE",
-        "Uses live SAB, Snap and brainrot context for code-ready answers.",
-        74,
-        6
-    )
+    makeParagraph(page, "AI RESPONSE ENGINE", "Uses live SAB, Snap and brainrot context for code-ready answers.", 74, 6)
 end
 
 local function buildLog(self)
@@ -1347,24 +1279,22 @@ local function buildLog(self)
         BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = Theme.accentCyan,
         AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ClipsDescendants = true,
     }, page)
-    corner(self.View.LogScroll, UDim.new(0, 5))
-    stroke(self.View.LogScroll, Theme.accentDim, 1)
+    corner(self.View.LogScroll, UDim.new(0, 8))
+    stroke(self.View.LogScroll, Theme.accentDim, 1, 0.25)
     create("UIListLayout", {
-        Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder,
-        HorizontalAlignment = Enum.HorizontalAlignment.Left,
+        Padding = UDim.new(0, 3), SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Left,
     }, self.View.LogScroll)
     create("UIPadding", {
-        PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4),
-        PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4),
+        PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8),
+        PaddingTop = UDim.new(0, 6), PaddingBottom = UDim.new(0, 6),
     }, self.View.LogScroll)
     local clear = create("TextButton", {
-        Size = UDim2.new(1, -20, 0, 36), Position = UDim2.new(0, 10, 1, -46),
+        Size = UDim2.new(1, -20, 0, 38), Position = UDim2.new(0, 10, 1, -48),
         BackgroundColor3 = Theme.bg2, BorderSizePixel = 0,
-        Font = Enum.Font.GothamBold, TextSize = 13, TextColor3 = Theme.textMuted,
-        Text = "Clear Log",
+        Font = Enum.Font.GothamBlack, TextSize = 12, TextColor3 = Theme.accentSec, Text = "CLEAR ACTIVITY LOG",
     }, page)
-    corner(clear, UDim.new(0, 6))
-    stroke(clear, Theme.accentDim, 1)
+    corner(clear, UDim.new(0, 8))
+    stroke(clear, Theme.accentDim, 1, 0.28)
     surface(clear, 8)
     connect(self, clear.Activated, function()
         self:ClearLog()
@@ -1375,43 +1305,43 @@ end
 
 local function buildSender(self)
     local page = self.View.Pages[5]
-    local inputCard = makeCard(page, 122, 1)
+    local inputCard = makeCard(page, 126, 1)
     inputCard.ClipsDescendants = true
     makeText(inputCard, "NOTIFICATION MESSAGE", {
-        Size = UDim2.new(1, -20, 0, 26), Position = UDim2.new(0, 10, 0, 4),
-        Font = Enum.Font.GothamBold, TextSize = 14, TextColor3 = Theme.accentSec,
+        Size = UDim2.new(1, -110, 0, 26), Position = UDim2.new(0, 12, 0, 5),
+        Font = Enum.Font.GothamBlack, TextSize = 12, TextColor3 = Theme.accentSec,
     })
+    makePillBadge(inputCard, "TEST FEED", Theme.accentCyan, Theme.bg3, UDim2.new(1, -10, 0, 18), UDim2.new(0, 74, 0, 18), 4)
     self.View.SenderBox = create("TextBox", {
-        Size = UDim2.new(1, -16, 0, 80), Position = UDim2.new(0, 8, 0, 33),
+        Size = UDim2.new(1, -20, 0, 82), Position = UDim2.new(0, 10, 0, 34),
         BackgroundColor3 = Theme.inputBg, BorderSizePixel = 0, ClearTextOnFocus = false,
-        MultiLine = true, Font = Enum.Font.Gotham, TextSize = 13,
-        PlaceholderText = "Type a notification message...", PlaceholderColor3 = Theme.textMuted,
+        MultiLine = true, Font = Enum.Font.GothamBold, TextSize = 13,
+        PlaceholderText = "Type a notification message to simulate...", PlaceholderColor3 = Theme.textMuted,
         Text = "", TextColor3 = Theme.textPri, TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top,
     }, inputCard)
     clipInput(self, self.View.SenderBox)
-    corner(self.View.SenderBox, UDim.new(0, 5))
-    stroke(self.View.SenderBox, Theme.accentDim, 1, 0)
-    local send = makeButton(self, page, {
-        Text = "SEND NOTIFICATION", Bold = true, Order = 2,
-    })
+    corner(self.View.SenderBox, UDim.new(0, 7))
+    stroke(self.View.SenderBox, Theme.accentDim, 1, 0.2)
+    local send = makeButton(self, page, { Text = "SEND NOTIFICATION", Bold = true, Primary = true, Order = 2 })
     connect(self, send.Button.Activated, function()
         local message = self.View.SenderBox.Text:match("^%s*(.-)%s*$")
         local ok, status = emit(self, "SendNotification", message)
         self:SetSenderStatus(status, ok)
     end)
-    self.View.SenderStatus = makeText(makeCard(page, 44, 3), self.State.NotificationReady and "Remote ready" or "Remote unavailable", {
-        Size = UDim2.new(1, -20, 1, 0), Position = UDim2.new(0, 10, 0, 0),
-        TextSize = 12, TextColor3 = self.State.NotificationReady and Theme.accentSec or Theme.textMuted,
+    local statusCard = makeCard(page, 42, 3)
+    statusCard.BackgroundColor3 = Theme.bg3
+    self.View.SenderStatus = makeText(statusCard, self.State.NotificationReady and "Remote ready" or "Remote unavailable", {
+        Size = UDim2.new(1, -24, 1, 0), Position = UDim2.new(0, 12, 0, 0),
+        Font = Enum.Font.GothamBold, TextSize = 12,
+        TextColor3 = self.State.NotificationReady and Theme.accentCyan or Theme.textMuted,
         TextTruncate = Enum.TextTruncate.AtEnd,
     })
 end
 
 local function buildAA(self)
     local page = self.View.Pages[6]
-    self.Controls.Anchor = makeToggle(self, page, {
-        Text = "Anchor", Value = self.State.Anchor, Order = 1, Callback = "AnchorChanged",
-    })
+    self.Controls.Anchor = makeToggle(self, page, { Text = "Anchor", Value = self.State.Anchor, Order = 1, Callback = "AnchorChanged" })
     self.Controls.MaxBrainrotPrice = makeInput(self, page, {
         Text = "Buy / Sell Max Price", Value = self.State.MaxBrainrotPrice or "5m",
         Placeholder = "5m", InputWidth = 96, Order = 2, Callback = "MaxBrainrotPriceChanged",
@@ -1420,37 +1350,59 @@ local function buildAA(self)
         Text = "Auto Purchase", Value = self.State.AutoPurchase, Order = 3, Callback = "AutoPurchaseChanged",
     })
     makeParagraph(page, "Auto Purchase", "Purchases the nearest brainrot at 10 studs or less only when its base Price is at or below the limit.", 76, 4)
-    self.View.AAStatus = makeText(makeCard(page, 44, 5), "Ready", {
-        Size = UDim2.new(1, -20, 1, 0), Position = UDim2.new(0, 10, 0, 0),
-        TextSize = 12, TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
+    local aaStatusCard = makeCard(page, 42, 5)
+    aaStatusCard.BackgroundColor3 = Theme.bg3
+    self.View.AAStatus = makeText(aaStatusCard, "Ready", {
+        Size = UDim2.new(1, -24, 1, 0), Position = UDim2.new(0, 12, 0, 0),
+        Font = Enum.Font.GothamBold, TextSize = 12, TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
     })
     self.Controls.AutoSell = makeToggle(self, page, {
         Text = "Auto Sell", Value = self.State.AutoSell, Order = 6, Callback = "AutoSellChanged",
     })
     makeParagraph(page, "Auto Sell", "Sells only your own plot's brainrots whose base Price is at or below the same limit. Higher-priced brainrots stay safe.", 76, 7)
-    self.View.AASellStatus = makeText(makeCard(page, 44, 8), "Auto Sell disabled", {
-        Size = UDim2.new(1, -20, 1, 0), Position = UDim2.new(0, 10, 0, 0),
-        TextSize = 12, TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
+    local aaSellCard = makeCard(page, 42, 8)
+    aaSellCard.BackgroundColor3 = Theme.bg3
+    self.View.AASellStatus = makeText(aaSellCard, "Auto Sell disabled", {
+        Size = UDim2.new(1, -24, 1, 0), Position = UDim2.new(0, 12, 0, 0),
+        Font = Enum.Font.GothamBold, TextSize = 12, TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
     })
     self.Controls.Optimizer = makeButton(self, page, {
-        Text = "OPTIMIZE GAME (ONE-WAY)", Order = 9, Callback = "OptimizeGame",
-        TextColor = Theme.warning, Bold = true,
+        Text = "OPTIMIZE GAME (ONE-WAY)", Order = 9, Callback = "OptimizeGame", TextColor = Theme.warning, Bold = true,
     })
     makeParagraph(page, "Optimizer", "Permanently removes heavy client-side effects, textures and non-player cosmetics for this server session. Rejoin to restore them.", 76, 10)
-    self.View.OptimizerStatus = makeText(makeCard(page, 44, 11), "Not optimized", {
-        Size = UDim2.new(1, -20, 1, 0), Position = UDim2.new(0, 10, 0, 0),
-        TextSize = 12, TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
+    local optStatusCard = makeCard(page, 42, 11)
+    optStatusCard.BackgroundColor3 = Theme.bg3
+    self.View.OptimizerStatus = makeText(optStatusCard, "Not optimized", {
+        Size = UDim2.new(1, -24, 1, 0), Position = UDim2.new(0, 12, 0, 0),
+        Font = Enum.Font.GothamBold, TextSize = 12, TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
     })
 end
 
 function Controller:SetLastMessage(text)
-    if self.View.LastMessage then self.View.LastMessage.Text = tostring(text or "") end
+    if not self.View.LastMessage then return end
+    local value = tostring(text or "")
+    local hasMsg = value ~= ""
+    self.View.LastMessage.Text = hasMsg and value or "Waiting for a notification..."
+    self.View.LastMessage.TextColor3 = hasMsg and Theme.textPri or Theme.textMuted
+    if self.View.LastDetectedBadge then
+        self.View.LastDetectedBadge.Text = hasMsg and "CAPTURED" or "STANDBY"
+        self.View.LastDetectedBadge.TextColor3 = hasMsg and Theme.accentCyan or Theme.textMuted
+    end
 end
 
 function Controller:SetScanStatus(text, color)
     if not self.View.ScanStatus then return end
+    local tone, badgeLabel = statusTone(text, color)
     self.View.ScanStatus.Text = tostring(text or "READY")
-    self.View.ScanStatus.TextColor3 = color or Theme.textMuted
+    self.View.ScanStatus.TextColor3 = tone
+    if self.View.StatusDot then self.View.StatusDot.BackgroundColor3 = tone end
+    if self.View.StatusHalo then self.View.StatusHalo.BackgroundColor3 = tone end
+    if self.View.ScanBadge then
+        self.View.ScanBadge.Text, self.View.ScanBadge.TextColor3 = badgeLabel, tone
+    end
+    if self.View.HeaderReady then
+        self.View.HeaderReady.Text, self.View.HeaderReady.TextColor3 = badgeLabel, tone
+    end
 end
 
 function Controller:SetAAStates(anchorEnabled, purchaseEnabled, sellEnabled)
@@ -1481,6 +1433,7 @@ function Controller:SetOptimizerApplied(applied)
     control.Button.TextColor3 = applied and Theme.success or Theme.warning
     control.Frame.BackgroundColor3 = applied and Theme.bg3 or Theme.bg2
 end
+
 function Controller:SetSenderStatus(text, successful)
     if not self.View.SenderStatus then return end
     self.View.SenderStatus.Text = tostring(text or "Ready")
@@ -1493,14 +1446,11 @@ function Controller:Log(entry)
     if not self.View.LogScroll then return end
     local raw = tostring(entry or "")
     local timestamp, message = raw:match("^(%[[^%]]+%])%s*(.*)$")
-    timestamp = timestamp or "[--:--:--]"
-    message = message or raw
+    timestamp, message = timestamp or "[--:--:--]", message or raw
     local formatted = string.format(
         '<font color="#%s">%s</font> <font color="#%s">%s</font>',
-        colorHex(Theme.textMuted),
-        escapeRichText(timestamp),
-        colorHex(logColor(message)),
-        escapeRichText(message)
+        colorHex(Theme.textMuted), escapeRichText(timestamp),
+        colorHex(logColor(message)), escapeRichText(message)
     )
     local label = makeText(self.View.LogScroll, formatted, {
         Size = UDim2.new(1, -8, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
@@ -1556,7 +1506,7 @@ function UiLib.CreateRedeemer(options)
         Controls = {},
         LogLabels = {},
         MaxLogEntries = (options and options.MaxLogEntries) or (UiLib.IsTouch and 80 or 140),
-        View = { Pages = {}, TabButtons = {}, Indicators = {} },
+        View = { Pages = {}, TabButtons = {}, TabStrokes = {}, Indicators = {} },
         ActiveTab = 1,
         VerticalLayout = UiLib.DesktopVertical,
         Minimized = false,
