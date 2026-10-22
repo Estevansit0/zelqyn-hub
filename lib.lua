@@ -1,4 +1,4 @@
---v5
+--v6
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
 local RunService = cloneref(game:GetService("RunService"))
@@ -628,7 +628,6 @@ local TabData = {
     { "RULES", "TRIGGER MATRIX", 330, 340 },
     { "AI", "AI ENGINE", 520, 530 },
     { "LOG", "ACTIVITY LOG", 450, 470 },
-    { "SENDER", "TEST SENDER", 345, 355 },
     { "AA", "ADMIN ABUSE", 620, 650 },
 }
 
@@ -1178,13 +1177,8 @@ local function buildHome(self)
         if input.KeyCode == self.KeyCode then emit(self, "ClaimLastAI") end
     end)
 
-    self.Controls.RedeemMethod = makeDropdown(self, page, {
-        Text = "REDEEM METHOD", Value = self.State.RedeemMethod, Order = 6,
-        TextColor = Theme.accentCyan, Callback = "RedeemMethodChanged", Badge = "RECOMMENDED",
-        Items = { { Text = "FireSignal", Value = "FireSignal" }, { Text = "Remote", Value = "Remote" } },
-    })
     makeButton(self, page, {
-        Text = "COPY DISCORD INVITE", Callback = "CopyDiscord", Order = 7,
+        Text = "COPY DISCORD INVITE", Callback = "CopyDiscord", Order = 6,
         TextColor = Theme.accentSec, Bold = true, Height = 40,
     })
 end
@@ -1303,44 +1297,8 @@ local function buildLog(self)
     hover(self, clear, clear)
 end
 
-local function buildSender(self)
-    local page = self.View.Pages[5]
-    local inputCard = makeCard(page, 126, 1)
-    inputCard.ClipsDescendants = true
-    makeText(inputCard, "NOTIFICATION MESSAGE", {
-        Size = UDim2.new(1, -110, 0, 26), Position = UDim2.new(0, 12, 0, 5),
-        Font = Enum.Font.GothamBlack, TextSize = 12, TextColor3 = Theme.accentSec,
-    })
-    makePillBadge(inputCard, "TEST FEED", Theme.accentCyan, Theme.bg3, UDim2.new(1, -10, 0, 18), UDim2.new(0, 74, 0, 18), 4)
-    self.View.SenderBox = create("TextBox", {
-        Size = UDim2.new(1, -20, 0, 82), Position = UDim2.new(0, 10, 0, 34),
-        BackgroundColor3 = Theme.inputBg, BorderSizePixel = 0, ClearTextOnFocus = false,
-        MultiLine = true, Font = Enum.Font.GothamBold, TextSize = 13,
-        PlaceholderText = "Type a notification message to simulate...", PlaceholderColor3 = Theme.textMuted,
-        Text = "", TextColor3 = Theme.textPri, TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top,
-    }, inputCard)
-    clipInput(self, self.View.SenderBox)
-    corner(self.View.SenderBox, UDim.new(0, 7))
-    stroke(self.View.SenderBox, Theme.accentDim, 1, 0.2)
-    local send = makeButton(self, page, { Text = "SEND NOTIFICATION", Bold = true, Primary = true, Order = 2 })
-    connect(self, send.Button.Activated, function()
-        local message = self.View.SenderBox.Text:match("^%s*(.-)%s*$")
-        local ok, status = emit(self, "SendNotification", message)
-        self:SetSenderStatus(status, ok)
-    end)
-    local statusCard = makeCard(page, 42, 3)
-    statusCard.BackgroundColor3 = Theme.bg3
-    self.View.SenderStatus = makeText(statusCard, self.State.NotificationReady and "Remote ready" or "Remote unavailable", {
-        Size = UDim2.new(1, -24, 1, 0), Position = UDim2.new(0, 12, 0, 0),
-        Font = Enum.Font.GothamBold, TextSize = 12,
-        TextColor3 = self.State.NotificationReady and Theme.accentCyan or Theme.textMuted,
-        TextTruncate = Enum.TextTruncate.AtEnd,
-    })
-end
-
 local function buildAA(self)
-    local page = self.View.Pages[6]
+    local page = self.View.Pages[5]
     self.Controls.Anchor = makeToggle(self, page, { Text = "Anchor", Value = self.State.Anchor, Order = 1, Callback = "AnchorChanged" })
     self.Controls.MaxBrainrotPrice = makeInput(self, page, {
         Text = "Buy / Sell Max Price", Value = self.State.MaxBrainrotPrice or "5m",
@@ -1434,14 +1392,6 @@ function Controller:SetOptimizerApplied(applied)
     control.Frame.BackgroundColor3 = applied and Theme.bg3 or Theme.bg2
 end
 
-function Controller:SetSenderStatus(text, successful)
-    if not self.View.SenderStatus then return end
-    self.View.SenderStatus.Text = tostring(text or "Ready")
-    self.View.SenderStatus.TextColor3 = successful == true and Theme.success
-        or successful == false and Theme.danger
-        or Theme.textMuted
-end
-
 function Controller:Log(entry)
     if not self.View.LogScroll then return end
     local raw = tostring(entry or "")
@@ -1520,7 +1470,6 @@ function UiLib.CreateRedeemer(options)
     buildRules(self)
     buildAI(self)
     buildLog(self)
-    buildSender(self)
     buildAA(self)
     self:SetOptimizerApplied(self.State.OptimizerApplied == true)
     wireWindow(self)
