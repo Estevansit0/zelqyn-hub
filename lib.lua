@@ -1,4 +1,4 @@
---v8
+--v9 dual AI
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
 local RunService = cloneref(game:GetService("RunService"))
@@ -1244,25 +1244,18 @@ local function buildAI(self)
     self.Controls.AIAnswers = makeToggle(self, page, {
         Text = "Use AI Answers", Value = self.State.AIAnswers, Order = 1, Callback = "AIAnswersChanged",
     })
-    self.Controls.AIModel = makeDropdown(self, page, {
-        Text = "AI Model", Value = self.State.AIModel, Order = 2, Callback = "AIModelChanged", Badge = "FASTEST",
-        Items = {
-            { Text = "3.5 Flash Lite", Value = "google/gemini-3.5-flash-lite" },
-            { Text = "3.7 Flash", Value = "google/gemini-3.7-flash" },
-        },
-    })
     self.Controls.AITriggers = makeInput(self, page, {
         Text = "AI Triggers", Value = table.concat(self.State.AITriggers, ", "),
         Placeholder = "Question, riddle", Stacked = true, Align = Enum.TextXAlignment.Left,
-        Order = 3, Callback = "AITriggersChanged",
+        Order = 2, Callback = "AITriggersChanged",
     })
     self.Controls.MinCharacters = makeInput(self, page, {
-        Text = "Min Characters", Value = self.State.MinCharacters, Order = 4, Callback = "MinCharactersChanged",
+        Text = "Min Characters", Value = self.State.MinCharacters, Order = 3, Callback = "MinCharactersChanged",
     })
     self.Controls.MinSpaces = makeInput(self, page, {
-        Text = "Min Spaces", Value = self.State.MinSpaces, Order = 5, Callback = "MinSpacesChanged",
+        Text = "Min Spaces", Value = self.State.MinSpaces, Order = 4, Callback = "MinSpacesChanged",
     })
-    makeParagraph(page, "AI RESPONSE ENGINE", "Uses live SAB, Snap and brainrot context for code-ready answers.", 74, 6)
+    makeParagraph(page, "DUAL AI ENGINE", "Gemini Flash Lite + GPT-oss/Cerebras run together. Each distinct answer is redeemed as soon as it arrives; matching answers are sent once.", 96, 5)
 end
 
 local function buildLog(self)
@@ -1324,17 +1317,7 @@ local function buildSender(self)
         local ok, status = emit(self, "SendNotification", message)
         self:SetSenderStatus(status, ok)
     end)
-    self.Controls.FastMessageGap = makeDropdown(self, page, {
-        Text = "FAST TEST REDEEM GAP", Value = 0.2, Badge = "2 QUESTIONS", Order = 3,
-        Items = { { Text = "200 ms after first submit", Value = 0.2 }, { Text = "0 ms (parallel)", Value = 0 } },
-    })
-    local fastSend = makeButton(self, page, { Text = "SEND 2 FAST MESSAGES", Bold = true, Order = 4 })
-    connect(self, fastSend.Button.Activated, function()
-        local ok, status = emit(self, "SendTwoFastMessages", self.Controls.FastMessageGap.Value)
-        self:SetSenderStatus(status, ok)
-    end)
-    makeParagraph(page, "FAST TEST", "Two plain questions: random candidate, then first-minifigure DLC. Waits for both AI answers, then sends 2 real redeems at the chosen gap. Results appear in LOG.", 96, 5)
-    local statusCard = makeCard(page, 42, 6)
+    local statusCard = makeCard(page, 42, 3)
     statusCard.BackgroundColor3 = Theme.bg3
     self.View.SenderStatus = makeText(statusCard, self.State.NotificationReady and "Remote ready" or "Remote unavailable", {
         Size = UDim2.new(1, -24, 1, 0), Position = UDim2.new(0, 12, 0, 0),
