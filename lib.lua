@@ -1,4 +1,4 @@
---v9 dual AI
+--v10 triple AI
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
 local RunService = cloneref(game:GetService("RunService"))
@@ -1255,7 +1255,7 @@ local function buildAI(self)
     self.Controls.MinSpaces = makeInput(self, page, {
         Text = "Min Spaces", Value = self.State.MinSpaces, Order = 4, Callback = "MinSpacesChanged",
     })
-    makeParagraph(page, "DUAL AI ENGINE", "Gemini Flash Lite + GPT-oss/Cerebras run together. Each distinct answer is redeemed as soon as it arrives; matching answers are sent once.", 96, 5)
+    makeParagraph(page, "TRIPLE AI ENGINE", "Gemini Flash Lite + GPT-oss/Cerebras + GLM 5.3 Flash run together. Each distinct answer is redeemed as soon as it arrives; matching answers are sent once.", 96, 5)
 end
 
 local function buildLog(self)
