@@ -1,4 +1,4 @@
---v10 triple AI
+--v11 redemption notifications
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
 local RunService = cloneref(game:GetService("RunService"))
@@ -1393,6 +1393,95 @@ function Controller:SetScanStatus(text, color)
     end
 end
 
+function Controller:DismissNotification(entry)
+    if not entry or entry.Closed then return end
+    entry.Closed = true
+    if entry.Timer then pcall(task.cancel, entry.Timer); entry.Timer = nil end
+    if entry.Connection then entry.Connection:Disconnect() end
+    if entry.ProgressTween then entry.ProgressTween:Cancel() end
+    if entry.Card.Parent then entry.Card:Destroy() end
+    if entry.Key and self.NotificationKeys[entry.Key] == entry then self.NotificationKeys[entry.Key] = nil end
+    local index = table.find(self.Notifications, entry)
+    if index then table.remove(self.Notifications, index) end
+end
+
+-- ui:Notify({Title="Notice", Content="Message", Type="success", Duration=6, Key="optional"})
+function Controller:Notify(options)
+    if self.Destroyed or not self.View.Gui or not self.View.Gui.Parent then return end
+    options = type(options) == "table" and options or { Content = tostring(options or "") }
+    self.Notifications, self.NotificationKeys = self.Notifications or {}, self.NotificationKeys or {}
+    local key = options.Key and tostring(options.Key)
+    if key then self:DismissNotification(self.NotificationKeys[key]) end
+    while #self.Notifications >= 3 do self:DismissNotification(self.Notifications[1]) end
+    if not self.View.Notifications then
+        self.View.Notifications = create("Frame", {
+            Name = "Notifications", AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -16, 1, -16),
+            Size = UDim2.new(1, -32, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
+            BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 100,
+        }, self.View.Gui)
+        create("UISizeConstraint", { MaxSize = Vector2.new(340, math.huge) }, self.View.Notifications)
+        create("UIListLayout", {
+            Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder,
+            HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Bottom,
+        }, self.View.Notifications)
+    end
+    local tone = options.Type == "success" and Theme.success or options.Type == "warning" and Theme.warning
+        or options.Type == "error" and Theme.danger or Theme.info
+    local duration = tonumber(options.Duration) or 6
+    if duration ~= duration then duration = 6 end
+    duration = math.clamp(duration, 2, 15)
+    self.NotificationOrder = (self.NotificationOrder or 0) + 1
+    local card = create("Frame", {
+        Name = "Notice", Size = UDim2.new(1, 0, 0, 110), BackgroundColor3 = Theme.bg1,
+        BorderSizePixel = 0, ClipsDescendants = true, LayoutOrder = self.NotificationOrder, ZIndex = 100,
+    }, self.View.Notifications)
+    corner(card, UDim.new(0, 10))
+    stroke(card, tone, 1, 0.25)
+    create("Frame", { Size = UDim2.new(0, 3, 1, 0), BackgroundColor3 = tone, BorderSizePixel = 0, ZIndex = 101 }, card)
+    makeText(card, tostring(options.Title or "ZELQYN HUB"):sub(1, 100), {
+        Position = UDim2.new(0, 14, 0, 9), Size = UDim2.new(1, -48, 0, 22),
+        Font = Enum.Font.GothamBold, TextSize = 12, TextColor3 = tone, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 102,
+    })
+    makeText(card, tostring(options.Content or options.Message or ""):sub(1, 500), {
+        Position = UDim2.new(0, 14, 0, 34), Size = UDim2.new(1, -28, 0, 62), TextSize = 12,
+        TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, TextTruncate = Enum.TextTruncate.AtEnd, RichText = false, ZIndex = 102,
+    })
+    local close = create("TextButton", {
+        Position = UDim2.new(1, -32, 0, 5), Size = UDim2.new(0, 28, 0, 28), BackgroundTransparency = 1,
+        Text = "×", Font = Enum.Font.GothamBold, TextSize = 20, TextColor3 = Theme.textMuted, ZIndex = 103,
+    }, card)
+    local progress = create("Frame", {
+        Position = UDim2.new(0, 0, 1, -3), Size = UDim2.new(1, 0, 0, 3), BackgroundColor3 = tone, BorderSizePixel = 0, ZIndex = 102,
+    }, card)
+    local entry = { Card = card, Key = key }
+    table.insert(self.Notifications, entry)
+    if key then self.NotificationKeys[key] = entry end
+    entry.Connection = close.Activated:Connect(function() self:DismissNotification(entry) end)
+    entry.ProgressTween = TweenService:Create(progress, TweenInfo.new(duration, Enum.EasingStyle.Linear), { Size = UDim2.new(0, 0, 0, 3) })
+    entry.ProgressTween:Play()
+    entry.Timer = task.delay(duration, function() entry.Timer = nil; self:DismissNotification(entry) end)
+    local scale = create("UIScale", { Scale = 0.94 }, card)
+    TweenService:Create(scale, Theme.tweenSpring, { Scale = 1 }):Play()
+    return entry
+end
+
+-- ui:NotifyRedeem(code, "success" or "sold_out", invokeMessage)
+function Controller:NotifyRedeem(code, status, message)
+    if status == "valid" then status = "success" end
+    if status ~= "success" and status ~= "sold_out" then return end
+    local key = "redeem:" .. tostring(code):lower()
+    local previous = self.NotificationKeys and self.NotificationKeys[key]
+    if previous and previous.RedeemStatus == "success" then return previous end
+    local plain = tostring(message or ""):gsub("<[^>]+>", ""):match("^%s*(.-)%s*$")
+    local entry = self:Notify({
+        Title = status == "success" and "CODE REDEEMED" or "CODE SOLD OUT",
+        Content = tostring(code) .. (plain ~= "" and "\n" .. plain or ""),
+        Type = status == "success" and "success" or "warning", Duration = 7, Key = key,
+    })
+    if entry then entry.RedeemStatus = status end
+    return entry
+end
+
 function Controller:SetAAStates(anchorEnabled, purchaseEnabled, sellEnabled)
     if self.Controls.Anchor then self.Controls.Anchor:Set(anchorEnabled, false) end
     if self.Controls.AutoPurchase then self.Controls.AutoPurchase:Set(purchaseEnabled, false) end
@@ -1474,6 +1563,7 @@ end
 function Controller:Destroy()
     if self.Destroyed then return end
     self.Destroyed = true
+    while self.Notifications and #self.Notifications > 0 do self:DismissNotification(self.Notifications[1]) end
     for index = #self.Connections, 1, -1 do
         local connection = self.Connections[index]
         if connection then connection:Disconnect() end
@@ -1493,6 +1583,8 @@ function UiLib.CreateRedeemer(options)
         Dropdowns = {},
         Controls = {},
         LogLabels = {},
+        Notifications = {},
+        NotificationKeys = {},
         MaxLogEntries = (options and options.MaxLogEntries) or (UiLib.IsTouch and 80 or 140),
         View = { Pages = {}, TabButtons = {}, TabStrokes = {}, Indicators = {} },
         ActiveTab = 1,
