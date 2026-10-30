@@ -1417,22 +1417,18 @@ end
 
 function Controller:NotificationList()
     if self.View.Notifications then return self.View.Notifications end
-    local touch = UiLib.IsTouch
     local list = create("Frame", {
-        Name = "Notifications",
-        AnchorPoint = touch and Vector2.new(0.5, 0) or Vector2.new(1, 1),
-        Position = touch and UDim2.new(0.5, 0, 0, 10) or UDim2.new(1, -16, 1, -16),
+        Name = "Notifications", AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -16, 1, -16),
         Size = UDim2.new(1, -32, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
         BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 100,
     }, self.View.Gui)
-    create("UISizeConstraint", { MaxSize = Vector2.new(touch and 320 or 340, math.huge) }, list)
+    create("UISizeConstraint", { MaxSize = Vector2.new(340, math.huge) }, list)
     create("UIListLayout", {
         Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder,
-        HorizontalAlignment = touch and Enum.HorizontalAlignment.Center or Enum.HorizontalAlignment.Right,
-        VerticalAlignment = touch and Enum.VerticalAlignment.Top or Enum.VerticalAlignment.Bottom,
+        HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Bottom,
     }, list)
     self.View.NotificationScale = create("UIScale", {
-        Scale = touch and (self.ResponsiveScale or Theme.mobileMaxScale) or 1,
+        Scale = UiLib.IsTouch and (self.ResponsiveScale or Theme.mobileMaxScale) or 1,
     }, list)
     self.View.Notifications = list
     return list
@@ -1454,13 +1450,12 @@ function Controller:Notify(options)
     duration = math.clamp(duration, 2, 15)
     local content = tostring(options.Content or options.Message or "")
     if #content > 240 then content = content:sub(1, 237) .. "..." end
-    local topStack = UiLib.IsTouch
-    local anchorY = topStack and 0 or 1
+    local anchorY = 1
     self.NotificationOrder = (self.NotificationOrder or 0) + 1
 
     local holder = create("Frame", {
         Name = "Notice", Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1, BorderSizePixel = 0,
-        LayoutOrder = topStack and -self.NotificationOrder or self.NotificationOrder,
+        LayoutOrder = self.NotificationOrder,
     }, list)
     local card = create("Frame", {
         AnchorPoint = Vector2.new(0, anchorY), Position = noticeOffscreen(self, anchorY),
