@@ -46,6 +46,8 @@ local UiLib = {
         tweenSnap = TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
         tweenSpring = TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
         tweenSlide = TweenInfo.new(0.26, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+        tweenNoticeIn = TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+        tweenNoticeOut = TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
         toggleW = 42,
         toggleH = 22,
         knobSz = 16,
@@ -58,6 +60,10 @@ local UiLib = {
         desktopHeight = 620,
         mobileWidth = 346,
         mobileMaxHeight = 500,
+        mobileScaleBase = 500,
+        mobileMinScale = 0.6,
+        mobileMaxScale = 0.85,
+        mobileHeightRatio = 0.82,
     },
     Active = nil,
 }
@@ -649,11 +655,29 @@ local TabData = {
     { "AA", "Admin Abuse", 620, 650 },
 }
 
+local function viewportSize()
+    local camera = workspace.CurrentCamera
+    return camera and camera.ViewportSize or Vector2.new(1280, 720)
+end
+
+-- One scale for every tab on touch screens, driven by the short side of the screen.
+local function mobileScale(viewport)
+    local shortSide = math.min(viewport.X, viewport.Y)
+    local fitWidth = (viewport.X - 24) / Theme.mobileWidth
+    return math.clamp(
+        math.min(shortSide / Theme.mobileScaleBase, fitWidth, Theme.mobileMaxScale),
+        Theme.mobileMinScale, Theme.mobileMaxScale
+    )
+end
+
 local function expandedSize(self, index)
+    local tab = TabData[index or self.ActiveTab]
     if self.VerticalLayout then
-        return UDim2.new(0, Theme.desktopWidth, 0, TabData[index or self.ActiveTab][4])
+        return UDim2.new(0, Theme.desktopWidth, 0, tab[4])
     end
-    return UDim2.new(0, Theme.mobileWidth, 0, math.min(TabData[index or self.ActiveTab][3], Theme.mobileMaxHeight))
+    local viewport = viewportSize()
+    local fitHeight = math.max(260, math.floor(viewport.Y * Theme.mobileHeightRatio / mobileScale(viewport)))
+    return UDim2.new(0, Theme.mobileWidth, 0, math.min(tab[3], Theme.mobileMaxHeight, fitHeight))
 end
 
 local function collapsedSize(self)
@@ -875,7 +899,7 @@ local function buildWindow(self)
             FontFace = Fonts.Medium, TextSize = 12, TextScaled = true,
             TextColor3 = Theme.textMuted, Text = tab[1], ZIndex = 6,
         }, segment)
-        create("UITextSizeConstraint", { MinTextSize = 9, MaxTextSize = 12 }, button)
+        create("UITextSizeConstraint", { MinTextSize = 9, MaxTextSize = UiLib.IsTouch and 11 or 12 }, button)
         corner(button, UDim.new(0, 8))
         view.TabButtons[index] = button
         view.Pages[index] = makePage(view.Content, index ~= 4, self.VerticalLayout)
@@ -906,12 +930,13 @@ function Controller:UpdateResponsiveScale(instant)
     local fit = math.min((viewport.X - 20) / width, (viewport.Y - 20) / height)
     local target
     if UiLib.IsTouch then
-        target = math.clamp(math.min(1, fit), 0.58, 1)
+        target = mobileScale(viewport)
     else
         local desktopBase = math.clamp(viewport.Y / 960, 0.68, 0.90)
         target = math.clamp(math.min(fit, desktopBase), 0.58, 0.90)
     end
     self.ResponsiveScale = target
+    if self.View.NotificationScale then self.View.NotificationScale.Scale = UiLib.IsTouch and target or 1 end
     if instant then
         self.View.Scale.Scale = target
     else
@@ -1363,19 +1388,57 @@ function Controller:SetScanStatus(text, color)
     setPill(self.View.HeaderReady, badgeLabel, tone)
 end
 
+local NoticeGlyphs = { success = "✓", warning = "!", error = "×", info = "i" }
+
+local function noticeOffscreen(self, anchorY)
+    local scale = self.View.NotificationScale and self.View.NotificationScale.Scale or 1
+    return UDim2.new(0, viewportSize().X / math.max(scale, 0.01), anchorY, 0)
+end
+
 function Controller:DismissNotification(entry)
     if not entry or entry.Closed then return end
     entry.Closed = true
     if entry.Timer then pcall(task.cancel, entry.Timer); entry.Timer = nil end
+    for _, connection in ipairs(entry.Connections or {}) do connection:Disconnect() end
     if entry.Connection then entry.Connection:Disconnect() end
     if entry.ProgressTween then entry.ProgressTween:Cancel() end
-    if entry.Card.Parent then entry.Card:Destroy() end
     if entry.Key and self.NotificationKeys[entry.Key] == entry then self.NotificationKeys[entry.Key] = nil end
     local index = table.find(self.Notifications, entry)
     if index then table.remove(self.Notifications, index) end
+    local holder = entry.Holder or entry.Card
+    if not holder or not holder.Parent then return end
+    if self.Destroyed or not entry.Shown then holder:Destroy() return end
+    TweenService:Create(entry.Card, Theme.tweenNoticeOut, { Position = noticeOffscreen(self, entry.AnchorY) }):Play()
+    TweenService:Create(holder, Theme.tweenNoticeOut, { Size = UDim2.new(1, 0, 0, -8) }):Play()
+    task.delay(Theme.tweenNoticeOut.Time, function()
+        if holder.Parent then holder:Destroy() end
+    end)
 end
 
--- ui:Notify({Title="Notice", Content="Message", Type="success", Duration=6, Key="optional"})
+function Controller:NotificationList()
+    if self.View.Notifications then return self.View.Notifications end
+    local touch = UiLib.IsTouch
+    local list = create("Frame", {
+        Name = "Notifications",
+        AnchorPoint = touch and Vector2.new(0.5, 0) or Vector2.new(1, 1),
+        Position = touch and UDim2.new(0.5, 0, 0, 10) or UDim2.new(1, -16, 1, -16),
+        Size = UDim2.new(1, -32, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 100,
+    }, self.View.Gui)
+    create("UISizeConstraint", { MaxSize = Vector2.new(touch and 320 or 340, math.huge) }, list)
+    create("UIListLayout", {
+        Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder,
+        HorizontalAlignment = touch and Enum.HorizontalAlignment.Center or Enum.HorizontalAlignment.Right,
+        VerticalAlignment = touch and Enum.VerticalAlignment.Top or Enum.VerticalAlignment.Bottom,
+    }, list)
+    self.View.NotificationScale = create("UIScale", {
+        Scale = touch and (self.ResponsiveScale or Theme.mobileMaxScale) or 1,
+    }, list)
+    self.View.Notifications = list
+    return list
+end
+
+-- ui:Notify({Title="Notice", Content="Message", Code="optional chip", Type="success", Duration=6, Key="optional"})
 function Controller:Notify(options)
     if self.Destroyed or not self.View.Gui or not self.View.Gui.Parent then return end
     options = type(options) == "table" and options or { Content = tostring(options or "") }
@@ -1383,77 +1446,144 @@ function Controller:Notify(options)
     local key = options.Key and tostring(options.Key)
     if key then self:DismissNotification(self.NotificationKeys[key]) end
     while #self.Notifications >= 3 do self:DismissNotification(self.Notifications[1]) end
-    if not self.View.Notifications then
-        self.View.Notifications = create("Frame", {
-            Name = "Notifications", AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -16, 1, -16),
-            Size = UDim2.new(1, -32, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
-            BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 100,
-        }, self.View.Gui)
-        create("UISizeConstraint", { MaxSize = Vector2.new(340, math.huge) }, self.View.Notifications)
-        create("UIListLayout", {
-            Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder,
-            HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Bottom,
-        }, self.View.Notifications)
-    end
-    local tone = options.Type == "success" and Theme.success or options.Type == "warning" and Theme.warning
-        or options.Type == "error" and Theme.danger or Theme.info
+    local list = self:NotificationList()
+    local kind = (options.Type == "success" or options.Type == "warning" or options.Type == "error") and options.Type or "info"
+    local tone = Theme[kind == "error" and "danger" or kind]
     local duration = tonumber(options.Duration) or 6
     if duration ~= duration then duration = 6 end
     duration = math.clamp(duration, 2, 15)
+    local content = tostring(options.Content or options.Message or "")
+    if #content > 240 then content = content:sub(1, 237) .. "..." end
+    local topStack = UiLib.IsTouch
+    local anchorY = topStack and 0 or 1
     self.NotificationOrder = (self.NotificationOrder or 0) + 1
+
+    local holder = create("Frame", {
+        Name = "Notice", Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1, BorderSizePixel = 0,
+        LayoutOrder = topStack and -self.NotificationOrder or self.NotificationOrder,
+    }, list)
     local card = create("Frame", {
-        Name = "Notice", Size = UDim2.new(1, 0, 0, 110), BackgroundColor3 = Theme.bg1,
-        BackgroundTransparency = 0.04, BorderSizePixel = 0, ClipsDescendants = true,
-        LayoutOrder = self.NotificationOrder, ZIndex = 100,
-    }, self.View.Notifications)
+        AnchorPoint = Vector2.new(0, anchorY), Position = noticeOffscreen(self, anchorY),
+        Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundColor3 = Theme.bg1, BackgroundTransparency = 0.03, BorderSizePixel = 0, Active = true,
+    }, holder)
     corner(card, UDim.new(0, 12))
     stroke(card, Theme.border, 1, 0.86)
     local wash = create("Frame", {
-        Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = tone, BorderSizePixel = 0, ZIndex = 100,
+        Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = tone, BorderSizePixel = 0, ZIndex = 1,
     }, card)
     corner(wash, UDim.new(0, 12))
     create("UIGradient", {
         Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0.84), NumberSequenceKeypoint.new(0.55, 1), NumberSequenceKeypoint.new(1, 1),
+            NumberSequenceKeypoint.new(0, 0.82), NumberSequenceKeypoint.new(0.5, 1), NumberSequenceKeypoint.new(1, 1),
         }),
     }, wash)
-    local halo = create("Frame", {
-        AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 20, 0, 20), Size = UDim2.new(0, 16, 0, 16),
-        BackgroundColor3 = tone, BackgroundTransparency = 0.78, BorderSizePixel = 0, ZIndex = 101,
+
+    local body = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 2,
     }, card)
-    corner(halo, UDim.new(1, 0))
-    local dot = create("Frame", {
-        AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 0, 0.5, 0), Size = UDim2.new(0, 7, 0, 7),
-        BackgroundColor3 = tone, BorderSizePixel = 0, ZIndex = 102,
-    }, halo)
-    corner(dot, UDim.new(1, 0))
-    makeText(card, tostring(options.Title or "Zelqyn Hub"):sub(1, 100), {
-        Position = UDim2.new(0, 34, 0, 9), Size = UDim2.new(1, -70, 0, 22),
-        FontFace = Fonts.SemiBold, TextSize = 13, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 102,
+    padding(body, 12, 12, 12, 11)
+    create("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }, body)
+    local row = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = 1, ZIndex = 2,
+    }, body)
+    local icon = create("Frame", {
+        Size = UDim2.new(0, 28, 0, 28), BackgroundColor3 = tone, BackgroundTransparency = 0.82, BorderSizePixel = 0, ZIndex = 3,
+    }, row)
+    corner(icon, UDim.new(1, 0))
+    stroke(icon, tone, 1, 0.55)
+    makeText(icon, NoticeGlyphs[kind], {
+        Size = UDim2.new(1, 0, 1, 0), Position = UDim2.new(), FontFace = Fonts.Bold, TextSize = 14,
+        TextColor3 = tone, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 4,
     })
-    makeText(card, tostring(options.Content or options.Message or ""):sub(1, 500), {
-        Position = UDim2.new(0, 14, 0, 36), Size = UDim2.new(1, -28, 0, 60),
-        FontFace = Fonts.Regular, TextSize = 12, TextColor3 = Theme.textMuted,
-        TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, TextTruncate = Enum.TextTruncate.AtEnd,
-        RichText = false, ZIndex = 102,
+    local column = create("Frame", {
+        Position = UDim2.new(0, 40, 0, 0), Size = UDim2.new(1, -40, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1, ZIndex = 3,
+    }, row)
+    create("UIListLayout", { Padding = UDim.new(0, 5), SortOrder = Enum.SortOrder.LayoutOrder }, column)
+    local titleRow = create("Frame", { Size = UDim2.new(1, 0, 0, 18), BackgroundTransparency = 1, LayoutOrder = 1, ZIndex = 3 }, column)
+    makeText(titleRow, tostring(options.Title or "Zelqyn Hub"):sub(1, 100), {
+        Size = UDim2.new(1, -66, 1, 0), Position = UDim2.new(), FontFace = Fonts.SemiBold, TextSize = 13,
+        TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 4,
+    })
+    makeText(titleRow, os.date("%H:%M"), {
+        AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -24, 0, 0), Size = UDim2.new(0, 40, 1, 0),
+        TextSize = 10, TextColor3 = Theme.textDim, TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 4,
     })
     local close = create("TextButton", {
-        Position = UDim2.new(1, -32, 0, 5), Size = UDim2.new(0, 28, 0, 28), BackgroundTransparency = 1,
-        Text = "×", FontFace = Fonts.Medium, TextSize = 20, TextColor3 = Theme.textMuted, ZIndex = 103,
-    }, card)
-    local progress = create("Frame", {
-        Position = UDim2.new(0, 0, 1, -2), Size = UDim2.new(1, 0, 0, 2), BackgroundColor3 = tone,
-        BackgroundTransparency = 0.15, BorderSizePixel = 0, ZIndex = 102,
-    }, card)
-    local entry = { Card = card, Key = key }
+        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 4, 0.5, 0), Size = UDim2.new(0, 22, 0, 22),
+        BackgroundColor3 = Theme.hover, BackgroundTransparency = 1, BorderSizePixel = 0, AutoButtonColor = false,
+        Text = "×", FontFace = Fonts.Medium, TextSize = 16, TextColor3 = Theme.textMuted, ZIndex = 5,
+    }, titleRow)
+    corner(close, UDim.new(1, 0))
+    if options.Code and tostring(options.Code) ~= "" then
+        local chip = makeText(column, tostring(options.Code):sub(1, 60), {
+            Size = UDim2.new(0, 0, 0, 22), AutomaticSize = Enum.AutomaticSize.X, Position = UDim2.new(), LayoutOrder = 2,
+            BackgroundColor3 = Theme.bg0, BackgroundTransparency = 0.15, FontFace = Fonts.SemiBold, TextSize = 12,
+            TextColor3 = tone, TextXAlignment = Enum.TextXAlignment.Center, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 4,
+        })
+        corner(chip, UDim.new(0, 6))
+        stroke(chip, tone, 1, 0.7)
+        padding(chip, 8, 8, 0, 0)
+        create("UISizeConstraint", { MaxSize = Vector2.new(250, 22) }, chip)
+    end
+    if content ~= "" then
+        makeText(column, content, {
+            Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Position = UDim2.new(), LayoutOrder = 3,
+            FontFace = Fonts.Regular, TextSize = 12, TextColor3 = Theme.textMuted,
+            TextWrapped = true, RichText = false, ZIndex = 4,
+        })
+    end
+    local track = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 2), BackgroundColor3 = Theme.border, BackgroundTransparency = 0.92,
+        BorderSizePixel = 0, LayoutOrder = 2, ZIndex = 3,
+    }, body)
+    corner(track, UDim.new(1, 0))
+    local fill = create("Frame", {
+        Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = tone, BackgroundTransparency = 0.1, BorderSizePixel = 0, ZIndex = 4,
+    }, track)
+    corner(fill, UDim.new(1, 0))
+
+    local entry = { Card = card, Holder = holder, Key = key, AnchorY = anchorY, Connections = {} }
     table.insert(self.Notifications, entry)
     if key then self.NotificationKeys[key] = entry end
-    entry.Connection = close.Activated:Connect(function() self:DismissNotification(entry) end)
-    entry.ProgressTween = TweenService:Create(progress, TweenInfo.new(duration, Enum.EasingStyle.Linear), { Size = UDim2.new(0, 0, 0, 2) })
-    entry.ProgressTween:Play()
-    entry.Timer = task.delay(duration, function() entry.Timer = nil; self:DismissNotification(entry) end)
-    local scale = create("UIScale", { Scale = 0.94 }, card)
-    TweenService:Create(scale, Theme.tweenSpring, { Scale = 1 }):Play()
+    local function measure()
+        local scale = self.View.NotificationScale and self.View.NotificationScale.Scale or 1
+        return card.AbsoluteSize.Y / math.max(scale, 0.01)
+    end
+    entry.ProgressTween = TweenService:Create(fill, TweenInfo.new(duration, Enum.EasingStyle.Linear), { Size = UDim2.new(0, 0, 1, 0) })
+    entry.ProgressTween.Completed:Connect(function(state)
+        if state == Enum.PlaybackState.Completed then self:DismissNotification(entry) end
+    end)
+    table.insert(entry.Connections, close.Activated:Connect(function() self:DismissNotification(entry) end))
+    table.insert(entry.Connections, close.MouseEnter:Connect(function()
+        TweenService:Create(close, Theme.tweenFast, { BackgroundTransparency = 0.5, TextColor3 = Theme.textPri }):Play()
+    end))
+    table.insert(entry.Connections, close.MouseLeave:Connect(function()
+        TweenService:Create(close, Theme.tweenFast, { BackgroundTransparency = 1, TextColor3 = Theme.textMuted }):Play()
+    end))
+    table.insert(entry.Connections, card.MouseEnter:Connect(function()
+        if entry.Shown and not entry.Closed then entry.ProgressTween:Pause() end
+    end))
+    table.insert(entry.Connections, card.MouseLeave:Connect(function()
+        if entry.Shown and not entry.Closed then entry.ProgressTween:Play() end
+    end))
+    table.insert(entry.Connections, card.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then self:DismissNotification(entry) end
+    end))
+    table.insert(entry.Connections, card:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+        if entry.Shown and not entry.Closed then
+            TweenService:Create(holder, Theme.tweenFast, { Size = UDim2.new(1, 0, 0, measure()) }):Play()
+        end
+    end))
+    task.spawn(function()
+        task.wait()
+        if entry.Closed or not card.Parent then return end
+        entry.Shown = true
+        TweenService:Create(holder, Theme.tweenNoticeIn, { Size = UDim2.new(1, 0, 0, measure()) }):Play()
+        TweenService:Create(card, Theme.tweenNoticeIn, { Position = UDim2.new(0, 0, anchorY, 0) }):Play()
+        entry.ProgressTween:Play()
+    end)
     return entry
 end
 
@@ -1467,7 +1597,8 @@ function Controller:NotifyRedeem(code, status, message)
     local plain = tostring(message or ""):gsub("<[^>]+>", ""):match("^%s*(.-)%s*$")
     local entry = self:Notify({
         Title = status == "success" and "Code Redeemed" or "Code Sold Out",
-        Content = tostring(code) .. (plain ~= "" and "\n" .. plain or ""),
+        Code = tostring(code),
+        Content = plain,
         Type = status == "success" and "success" or "warning", Duration = 7, Key = key,
     })
     if entry then entry.RedeemStatus = status end
@@ -1519,6 +1650,7 @@ function Controller:Log(entry)
     local raw = tostring(entry or "")
     local timestamp, message = raw:match("^%[([^%]]+)%]%s*(.*)$")
     timestamp, message = timestamp or "--:--:--", message or raw
+    message = message:gsub("(" .. string.rep("%x", 8) .. ")" .. string.rep("%x", 24) .. "%x*", "%1…")
     local formatted = string.format(
         '<font color="#%s">%s</font>   <font color="#%s">%s</font>',
         colorHex(Theme.textDim), escapeRichText(timestamp),
