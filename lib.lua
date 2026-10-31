@@ -1,4 +1,4 @@
---v13 dual AI · lucid theme
+--v14
 local cloneref = cloneref or function(object) return object end
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
@@ -649,12 +649,13 @@ local function makeStatusCard(parent, text, order)
 end
 
 local TabData = {
-    { "Home", "Code Redeemer", 610, 620 },
+    { "Home", "Code Redeemer", 700, 710 },
     { "Rules", "Trigger Matrix", 330, 340 },
     { "AI", "AI Engine", 520, 530 },
     { "Log", "Activity Log", 450, 470 },
     { "Sender", "Test Sender", 345, 355 },
-    { "AA", "Admin Abuse", 620, 650 },
+    { "Buy", "Auto Buy", 360, 370 },
+    { "Sell", "Auto Sell", 315, 325 },
 }
 
 local function viewportSize()
@@ -1203,6 +1204,12 @@ local function buildHome(self)
         Text = "Copy Discord Invite", Callback = "CopyDiscord", Order = 6,
         TextColor = Theme.textPri, Bold = true, Height = 40,
     })
+    self.Controls.Optimizer = makeButton(self, page, {
+        Text = "Optimize Game (One-Way)", Order = 7, Callback = "OptimizeGame", TextColor = Theme.warning, Bold = true,
+    })
+    makeParagraph(page, "Optimizer", "Permanently removes heavy client-side effects, textures and non-player cosmetics for this server session. Rejoin to restore them.", 76, 8)
+    local _, optimizerStatus = makeStatusCard(page, "Not optimized", 9)
+    self.View.OptimizerStatus = optimizerStatus
 end
 
 local function buildRules(self)
@@ -1340,31 +1347,33 @@ local function buildSender(self)
     self.View.SenderStatus = senderStatus
 end
 
-local function buildAA(self)
+local function buildAutoBuy(self)
     local page = self.View.Pages[6]
     self.Controls.Anchor = makeToggle(self, page, { Text = "Anchor", Value = self.State.Anchor, Order = 1, Callback = "AnchorChanged" })
-    self.Controls.MaxBrainrotPrice = makeInput(self, page, {
-        Text = "Buy / Sell Max Price", Value = self.State.MaxBrainrotPrice or "5m",
-        Placeholder = "5m", InputWidth = 96, Order = 2, Callback = "MaxBrainrotPriceChanged",
+    self.Controls.MaxBuyBrainrotPrice = makeInput(self, page, {
+        Text = "Maximum Buy Price", Value = self.State.MaxBuyBrainrotPrice or "5m",
+        Placeholder = "5m", InputWidth = 96, Order = 2, Callback = "MaxBuyBrainrotPriceChanged",
     })
     self.Controls.AutoPurchase = makeToggle(self, page, {
-        Text = "Auto Purchase", Value = self.State.AutoPurchase, Order = 3, Callback = "AutoPurchaseChanged",
+        Text = "Auto Buy", Value = self.State.AutoPurchase, Order = 3, Callback = "AutoPurchaseChanged",
     })
-    makeParagraph(page, "Auto Purchase", "Purchases the nearest brainrot at 10 studs or less only when its base Price is at or below the limit.", 76, 4)
+    makeParagraph(page, "Auto Buy", "Purchases the nearest brainrot at 10 studs or less only when its base Price is at or below the buy limit.", 76, 4)
     local _, aaStatus = makeStatusCard(page, "Ready", 5)
     self.View.AAStatus = aaStatus
+end
+
+local function buildAutoSell(self)
+    local page = self.View.Pages[7]
+    self.Controls.MaxSellBrainrotPrice = makeInput(self, page, {
+        Text = "Maximum Sell Price", Value = self.State.MaxSellBrainrotPrice or "5m",
+        Placeholder = "5m", InputWidth = 96, Order = 1, Callback = "MaxSellBrainrotPriceChanged",
+    })
     self.Controls.AutoSell = makeToggle(self, page, {
-        Text = "Auto Sell", Value = self.State.AutoSell, Order = 6, Callback = "AutoSellChanged",
+        Text = "Auto Sell", Value = self.State.AutoSell, Order = 2, Callback = "AutoSellChanged",
     })
-    makeParagraph(page, "Auto Sell", "Sells only your own plot's brainrots whose base Price is at or below the same limit. Higher-priced brainrots stay safe.", 76, 7)
-    local _, aaSellStatus = makeStatusCard(page, "Auto Sell disabled", 8)
+    makeParagraph(page, "Auto Sell", "Sells only your own plot's brainrots whose base Price is at or below the sell limit. Higher-priced brainrots stay safe.", 76, 3)
+    local _, aaSellStatus = makeStatusCard(page, "Auto Sell disabled", 4)
     self.View.AASellStatus = aaSellStatus
-    self.Controls.Optimizer = makeButton(self, page, {
-        Text = "Optimize Game (One-Way)", Order = 9, Callback = "OptimizeGame", TextColor = Theme.warning, Bold = true,
-    })
-    makeParagraph(page, "Optimizer", "Permanently removes heavy client-side effects, textures and non-player cosmetics for this server session. Rejoin to restore them.", 76, 10)
-    local _, optimizerStatus = makeStatusCard(page, "Not optimized", 11)
-    self.View.OptimizerStatus = optimizerStatus
 end
 
 function Controller:SetLastMessage(text)
@@ -1727,7 +1736,8 @@ function UiLib.CreateRedeemer(options)
     buildAI(self)
     buildLog(self)
     buildSender(self)
-    buildAA(self)
+    buildAutoBuy(self)
+    buildAutoSell(self)
     self:SetOptimizerApplied(self.State.OptimizerApplied == true)
     wireWindow(self)
     self:SetTab(self.Options.ActiveTab or 1, true)
