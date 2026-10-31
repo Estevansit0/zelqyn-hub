@@ -1,4 +1,4 @@
---v14
+--v15
 local cloneref = cloneref or function(object) return object end
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
@@ -649,13 +649,13 @@ local function makeStatusCard(parent, text, order)
 end
 
 local TabData = {
-    { "Home", "Code Redeemer", 700, 710 },
+    { "Home", "Code Redeemer", 650, 660 },
     { "Rules", "Trigger Matrix", 330, 340 },
     { "AI", "AI Engine", 520, 530 },
     { "Log", "Activity Log", 450, 470 },
     { "Sender", "Test Sender", 345, 355 },
-    { "Buy", "Auto Buy", 360, 370 },
-    { "Sell", "Auto Sell", 315, 325 },
+    { "Buy", "Auto Buy", 390, 400 },
+    { "Sell", "Auto Sell", 345, 355 },
 }
 
 local function viewportSize()
