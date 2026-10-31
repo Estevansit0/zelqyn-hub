@@ -1,4 +1,4 @@
---v12 dual AI · lucid theme
+--v13 dual AI · lucid theme
 local cloneref = cloneref or function(object) return object end
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
@@ -283,6 +283,11 @@ end
 local function statusTone(text, explicitColor)
     local upper = string.upper(tostring(text or "READY"))
     if explicitColor then return resolveTone(explicitColor, Theme.textPri), "Status" end
+    if upper:find("CANCEL", 1, true) or upper:find("SOLD OUT", 1, true)
+        or upper:find("STOPPED", 1, true) or upper:find("EXPIRED", 1, true)
+    then
+        return Theme.danger, "Halted"
+    end
     if upper:find("COLLECTING", 1, true) or upper:find("WAIT", 1, true) or upper:find("ARMED", 1, true) then
         return Theme.warning, "Listening"
     end
@@ -291,9 +296,6 @@ local function statusTone(text, explicitColor)
     end
     if upper:find("REDEEMED", 1, true) or upper:find("COMPLETE", 1, true) or upper:find("SUBMITTED", 1, true) then
         return Theme.success, "Claimed"
-    end
-    if upper:find("CANCEL", 1, true) or upper:find("SOLD OUT", 1, true) or upper:find("STOPPED", 1, true) or upper:find("EXPIRED", 1, true) then
-        return Theme.danger, "Halted"
     end
     return Theme.success, "Online"
 end
