@@ -1,4 +1,4 @@
---v15
+--v14 dual AI · christmas theme
 local cloneref = cloneref or function(object) return object end
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
@@ -9,34 +9,36 @@ local UiLib = {
     IsTouch = UserInputService.TouchEnabled,
     DesktopVertical = not UserInputService.TouchEnabled,
     Theme = {
-        bg0 = Color3.fromRGB(12, 9, 10),
-        bg1 = Color3.fromRGB(20, 16, 17),
-        bg2 = Color3.fromRGB(38, 31, 33),
-        bg3 = Color3.fromRGB(27, 21, 23),
-        hover = Color3.fromRGB(54, 45, 48),
-        segment = Color3.fromRGB(22, 17, 19),
-        segmentActive = Color3.fromRGB(66, 58, 60),
-        inputBg = Color3.fromRGB(15, 11, 12),
+        bg0 = Color3.fromRGB(9, 12, 12),
+        bg1 = Color3.fromRGB(15, 19, 19),
+        bg2 = Color3.fromRGB(29, 36, 35),
+        bg3 = Color3.fromRGB(20, 26, 25),
+        hover = Color3.fromRGB(43, 52, 50),
+        segment = Color3.fromRGB(17, 22, 21),
+        segmentActive = Color3.fromRGB(55, 65, 62),
+        inputBg = Color3.fromRGB(11, 14, 14),
         border = Color3.fromRGB(255, 255, 255),
-        windowTop = Color3.fromRGB(24, 19, 21),
-        windowMid = Color3.fromRGB(21, 15, 17),
-        windowBottom = Color3.fromRGB(40, 13, 22),
-        glow = Color3.fromRGB(132, 26, 50),
-        accent = Color3.fromRGB(232, 74, 102),
-        accentHover = Color3.fromRGB(244, 98, 124),
-        accentDeep = Color3.fromRGB(160, 34, 62),
-        accentText = Color3.fromRGB(255, 140, 160),
-        activeTabText = Color3.fromRGB(247, 245, 246),
-        toggleOff = Color3.fromRGB(64, 56, 58),
-        toggleOn = Color3.fromRGB(232, 74, 102),
+        windowTop = Color3.fromRGB(19, 23, 23),
+        windowMid = Color3.fromRGB(15, 20, 19),
+        windowBottom = Color3.fromRGB(12, 34, 26),
+        glow = Color3.fromRGB(28, 110, 72),
+        gold = Color3.fromRGB(234, 196, 108),
+        snow = Color3.fromRGB(236, 246, 255),
+        accent = Color3.fromRGB(214, 48, 62),
+        accentHover = Color3.fromRGB(232, 74, 86),
+        accentDeep = Color3.fromRGB(140, 22, 34),
+        accentText = Color3.fromRGB(255, 128, 136),
+        activeTabText = Color3.fromRGB(246, 249, 248),
+        toggleOff = Color3.fromRGB(55, 64, 62),
+        toggleOn = Color3.fromRGB(214, 48, 62),
         knob = Color3.fromRGB(255, 255, 255),
-        textPri = Color3.fromRGB(237, 235, 236),
-        textMuted = Color3.fromRGB(152, 145, 148),
-        textDim = Color3.fromRGB(106, 99, 102),
-        success = Color3.fromRGB(74, 222, 128),
-        warning = Color3.fromRGB(250, 191, 64),
-        danger = Color3.fromRGB(245, 88, 88),
-        info = Color3.fromRGB(125, 178, 255),
+        textPri = Color3.fromRGB(236, 242, 240),
+        textMuted = Color3.fromRGB(144, 156, 152),
+        textDim = Color3.fromRGB(98, 110, 106),
+        success = Color3.fromRGB(86, 214, 140),
+        warning = Color3.fromRGB(244, 196, 84),
+        danger = Color3.fromRGB(242, 84, 84),
+        info = Color3.fromRGB(128, 186, 255),
         cardTransparency = 0.3,
         inputTransparency = 0.18,
         borderTransparency = 0.91,
@@ -55,7 +57,7 @@ local UiLib = {
         backgroundAsset = "rbxassetid://130379359123488",
         backgroundTransparency = 0.94,
         logoAsset = "rbxassetid://0",
-        pumpkinRain = true,
+        snowfall = true,
         desktopWidth = 390,
         desktopHeight = 620,
         mobileWidth = 346,
@@ -338,7 +340,7 @@ local function makeButton(self, parent, options)
             Color = ColorSequence.new(Theme.accentHover, Theme.accentDeep),
             Rotation = 90,
         }, card)
-        outline.Color, outline.Transparency = Theme.accentHover, 0.55
+        outline.Color, outline.Transparency = Theme.gold, 0.5
     end
     local restStroke = outline.Transparency
     local button = create("TextButton", {
@@ -779,34 +781,57 @@ local function buildWindow(self)
         NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.42, 0.9),
         NumberSequenceKeypoint.new(1, 1),
     }))
+    local frost = glowLayer(view.Window, "Frost", 90, NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.8, 1),
+        NumberSequenceKeypoint.new(1, 0.9),
+    }))
+    frost.BackgroundColor3 = Theme.snow
     view.Background = create("ImageLabel", {
         Name = "ZelqynBackground", Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
-        BorderSizePixel = 0, Image = Theme.backgroundAsset, ImageColor3 = Theme.accentHover,
+        BorderSizePixel = 0, Image = Theme.backgroundAsset, ImageColor3 = Theme.glow,
         ImageTransparency = Theme.backgroundTransparency, ScaleType = Enum.ScaleType.Crop, ZIndex = 1,
     }, view.Window)
     corner(view.Background, UDim.new(0, 14))
 
-    view.PumpkinLayer = create("Frame", {
-        Name = "PumpkinRain", Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
+    view.SnowLayer = create("Frame", {
+        Name = "Snowfall", Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
         BorderSizePixel = 0, ClipsDescendants = true, ZIndex = 2,
     }, view.Window)
-    view.Pumpkins = {}
-    if Theme.pumpkinRain then
-        local pumpkinSpecs = {
-            { 0.07, -0.12, 19, 0.045 }, { 0.24, 0.18, 15, 0.032 },
-            { 0.43, -0.32, 22, 0.039 }, { 0.62, 0.07, 17, 0.049 },
-            { 0.82, -0.22, 20, 0.035 }, { 0.94, 0.31, 14, 0.043 },
-            { 0.16, 0.55, 18, 0.038 }, { 0.51, 0.72, 16, 0.046 },
-            { 0.76, 0.48, 21, 0.034 },
+    view.Snowflakes = {}
+    if Theme.snowfall then
+        -- { x, y, size (0 = soft snow dot), fall speed, sway, transparency }
+        local snowSpecs = {
+            { 0.06, -0.10, 16, 0.040, 0.020, 0.30 }, { 0.21, 0.22, 11, 0.028, 0.014, 0.50 },
+            { 0.37, -0.34, 19, 0.034, 0.024, 0.28 }, { 0.55, 0.05, 13, 0.044, 0.016, 0.42 },
+            { 0.72, -0.24, 17, 0.031, 0.022, 0.34 }, { 0.90, 0.30, 12, 0.039, 0.015, 0.48 },
+            { 0.14, 0.58, 14, 0.036, 0.018, 0.40 }, { 0.47, 0.70, 18, 0.042, 0.020, 0.32 },
+            { 0.80, 0.52, 15, 0.030, 0.017, 0.38 }, { 0.30, 0.86, 10, 0.026, 0.012, 0.55 },
+            { 0.10, 0.36, 0, 0.022, 0.010, 0.45 }, { 0.33, 0.12, 0, 0.025, 0.012, 0.55 },
+            { 0.52, 0.44, 0, 0.020, 0.010, 0.50 }, { 0.66, 0.80, 0, 0.027, 0.014, 0.45 },
+            { 0.86, 0.06, 0, 0.023, 0.011, 0.55 }, { 0.96, 0.66, 0, 0.021, 0.012, 0.50 },
         }
-        for index, spec in ipairs(pumpkinSpecs) do
-            local label = create("TextLabel", {
-                AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(spec[1], spec[2]),
-                Size = UDim2.fromOffset(spec[3] + 8, spec[3] + 8), BackgroundTransparency = 1,
-                BorderSizePixel = 0, FontFace = Fonts.Bold, Text = "🎃",
-                TextSize = spec[3], TextTransparency = 0.35, ZIndex = 2,
-            }, view.PumpkinLayer)
-            view.Pumpkins[index] = { Label = label, X = spec[1], Y = spec[2], Speed = spec[4], Phase = index * 0.71 }
+        for index, spec in ipairs(snowSpecs) do
+            local flake
+            if spec[3] > 0 then
+                flake = create("TextLabel", {
+                    AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(spec[1], spec[2]),
+                    Size = UDim2.fromOffset(spec[3] + 6, spec[3] + 6), BackgroundTransparency = 1,
+                    BorderSizePixel = 0, FontFace = Fonts.Regular, Text = "❄",
+                    TextSize = spec[3], TextColor3 = Theme.snow, TextTransparency = spec[6], ZIndex = 2,
+                }, view.SnowLayer)
+            else
+                local dotSize = 3 + index % 3
+                flake = create("Frame", {
+                    AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(spec[1], spec[2]),
+                    Size = UDim2.fromOffset(dotSize, dotSize), BackgroundColor3 = Theme.snow,
+                    BackgroundTransparency = spec[6], BorderSizePixel = 0, ZIndex = 2,
+                }, view.SnowLayer)
+                corner(flake, UDim.new(1, 0))
+            end
+            view.Snowflakes[index] = {
+                Object = flake, X = spec[1], Y = spec[2], Speed = spec[4], Sway = spec[5],
+                Spin = spec[3] > 0, Phase = index * 0.83,
+            }
         end
     end
 
@@ -818,7 +843,7 @@ local function buildWindow(self)
         Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
             ColorSequenceKeypoint.new(0.42, Color3.new(1, 1, 1)),
-            ColorSequenceKeypoint.new(0.5, Theme.accentHover),
+            ColorSequenceKeypoint.new(0.5, Theme.gold),
             ColorSequenceKeypoint.new(0.58, Color3.new(1, 1, 1)),
             ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1)),
         }),
@@ -838,7 +863,7 @@ local function buildWindow(self)
         BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, ZIndex = 5,
     }, view.Header)
     corner(mark, UDim.new(0, 9))
-    stroke(mark, Theme.accentHover, 1, 0.5)
+    stroke(mark, Theme.gold, 1, 0.45)
     create("UIGradient", { Color = ColorSequence.new(Theme.accentHover, Theme.accentDeep), Rotation = 135 }, mark)
     makeText(mark, "Z", {
         Size = UDim2.new(1, 0, 1, 0), Position = UDim2.new(), FontFace = Fonts.Bold, TextSize = 16,
@@ -883,7 +908,7 @@ local function buildWindow(self)
     corner(view.TabHighlight, UDim.new(0, 8))
     stroke(view.TabHighlight, Theme.border, 1, 0.88)
     create("UIGradient", {
-        Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(212, 206, 208)), Rotation = 90,
+        Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(204, 212, 209)), Rotation = 90,
     }, view.TabHighlight)
 
     view.Divider = create("Frame", {
@@ -1056,14 +1081,15 @@ local function wireWindow(self)
         local animationDelta = animationElapsed
         animationElapsed = 0
         local now = os.clock()
-        for _, pumpkin in ipairs(self.View.Pumpkins or {}) do
-            pumpkin.Y = pumpkin.Y + animationDelta * pumpkin.Speed
-            if pumpkin.Y > 1.12 then
-                pumpkin.Y = -0.14
-                pumpkin.X = 0.04 + ((pumpkin.X + 0.37) % 0.92)
+        for _, flake in ipairs(self.View.Snowflakes or {}) do
+            flake.Y = flake.Y + animationDelta * flake.Speed
+            if flake.Y > 1.08 then
+                flake.Y = -0.08
+                flake.X = 0.03 + ((flake.X + 0.41) % 0.94)
             end
-            pumpkin.Label.Position = UDim2.fromScale(pumpkin.X, pumpkin.Y)
-            pumpkin.Label.Rotation = math.sin(now * 0.9 + pumpkin.Phase) * 16
+            local drift = math.sin(now * 0.8 + flake.Phase) * flake.Sway
+            flake.Object.Position = UDim2.fromScale(flake.X + drift, flake.Y)
+            if flake.Spin then flake.Object.Rotation = (now * 22 + flake.Phase * 40) % 360 end
         end
         self.View.Glow.Rotation = (now * 48) % 360
         if self.View.StatusHalo then
