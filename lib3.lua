@@ -1,4 +1,4 @@
---og sniper · christmas theme x
+--og sniper · christmas theme xd
 local cloneref = cloneref or function(object) return object end
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
@@ -16,6 +16,8 @@ local UiLib = {
         hover = Color3.fromRGB(43, 52, 50),
         segment = Color3.fromRGB(17, 22, 21),
         segmentActive = Color3.fromRGB(55, 65, 62),
+        toggleOff = Color3.fromRGB(55, 64, 62),
+        toggleOn = Color3.fromRGB(214, 48, 62),
         inputBg = Color3.fromRGB(11, 14, 14),
         border = Color3.fromRGB(255, 255, 255),
         windowTop = Color3.fromRGB(19, 23, 23),
@@ -53,7 +55,9 @@ local UiLib = {
         logoAsset = "rbxassetid://0",
         snowfall = true,
         width = 460,
-        height = 580,
+        height = 620,
+        navHeight = 38,
+        tileHeight = 148,
         cardHeight = 180,
         filterHeight = 38,
         mobileScaleBase = 500,
@@ -69,6 +73,8 @@ local Controller = {}
 Controller.__index = Controller
 local Card = {}
 Card.__index = Card
+local Tile = {}
+Tile.__index = Tile
 
 local Fonts = {
     Regular = Font.new(Theme.fontFamily, Enum.FontWeight.Regular),
@@ -381,52 +387,186 @@ function Card:Destroy()
     end
 end
 
-local function buildFilter(self, top)
-    local view, spec = self.View, self.Options.Filter
-    local options = spec.Options or {}
-    view.FilterRow = create("Frame", {
-        Position = UDim2.new(0, 0, 0, top), Size = UDim2.new(1, 0, 0, Theme.filterHeight),
-        BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 4,
-    }, view.Window)
-    makeText(view.FilterRow, tostring(spec.Label or "Show"), {
-        Position = UDim2.new(0, 14, 0, 0), Size = UDim2.new(0, 46, 1, -6),
-        FontFace = Fonts.SemiBold, TextSize = 12, TextColor3 = Theme.textMuted, ZIndex = 5,
-    })
-    local segment = create("Frame", {
-        Position = UDim2.new(0, 62, 0, 0), Size = UDim2.new(1, -72, 1, -6),
+-- Segmented control with a sliding highlight; onSelect(option) fires on clicks.
+local function makeSegmented(owner, parent, options, onSelect)
+    local segmented = { Options = options, Buttons = {} }
+    local frame = create("Frame", {
         BackgroundColor3 = Theme.segment, BackgroundTransparency = 0.2, BorderSizePixel = 0, ZIndex = 4,
-    }, view.FilterRow)
-    corner(segment, UDim.new(0, 10))
-    stroke(segment, Theme.border, 1, 0.9)
-    padding(segment, 3, 3, 3, 3)
-    view.FilterHighlight = create("Frame", {
+    }, parent)
+    corner(frame, UDim.new(0, 10))
+    stroke(frame, Theme.border, 1, 0.9)
+    padding(frame, 3, 3, 3, 3)
+    local highlight = create("Frame", {
         Size = UDim2.new(1 / #options, -2, 1, 0), Position = UDim2.new(0, 1, 0, 0),
         BackgroundColor3 = Theme.segmentActive, BackgroundTransparency = 0.05, BorderSizePixel = 0, ZIndex = 5,
-    }, segment)
-    corner(view.FilterHighlight, UDim.new(0, 7))
-    stroke(view.FilterHighlight, Theme.border, 1, 0.88)
+    }, frame)
+    corner(highlight, UDim.new(0, 7))
+    stroke(highlight, Theme.border, 1, 0.88)
     create("UIGradient", {
         Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(204, 212, 209)), Rotation = 90,
-    }, view.FilterHighlight)
-    view.FilterButtons = {}
+    }, highlight)
     for index, option in ipairs(options) do
         local button = create("TextButton", {
             Size = UDim2.new(1 / #options, -2, 1, 0), Position = UDim2.new((index - 1) / #options, 1, 0, 0),
             BackgroundColor3 = Theme.hover, BackgroundTransparency = 1, BorderSizePixel = 0, AutoButtonColor = false,
             FontFace = Fonts.Medium, TextSize = 12, TextColor3 = Theme.textMuted, Text = tostring(option), ZIndex = 6,
-        }, segment)
+        }, frame)
         corner(button, UDim.new(0, 7))
-        view.FilterButtons[index] = button
-        connect(self, button.Activated, function() self:SetFilter(option) end)
-        connect(self, button.MouseEnter, function()
-            if self.Filter == option then return end
+        segmented.Buttons[index] = button
+        connect(owner, button.Activated, function() onSelect(option) end)
+        connect(owner, button.MouseEnter, function()
+            if segmented.Value == option then return end
             TweenService:Create(button, Theme.tweenFast, { BackgroundTransparency = 0.6, TextColor3 = Theme.textPri }):Play()
         end)
-        connect(self, button.MouseLeave, function()
-            if self.Filter == option then return end
+        connect(owner, button.MouseLeave, function()
+            if segmented.Value == option then return end
             TweenService:Create(button, Theme.tweenFast, { BackgroundTransparency = 1, TextColor3 = Theme.textMuted }):Play()
         end)
     end
+    function segmented:Set(value, instant)
+        local index = table.find(self.Options, value) or 1
+        self.Value = self.Options[index]
+        for current, button in ipairs(self.Buttons) do
+            local active = current == index
+            button.BackgroundTransparency = 1
+            button.FontFace = active and Fonts.SemiBold or Fonts.Medium
+            TweenService:Create(button, Theme.tweenFast, { TextColor3 = active and Theme.activeTabText or Theme.textMuted }):Play()
+        end
+        local position = UDim2.new((index - 1) / #self.Options, 1, 0, 0)
+        if instant then
+            highlight.Position = position
+        else
+            TweenService:Create(highlight, Theme.tweenSlide, { Position = position }):Play()
+        end
+        return self.Value
+    end
+    segmented.Frame = frame
+    return segmented
+end
+
+local function makeSwitch(owner, parent, value, onChanged)
+    local switch = { Value = false }
+    local track = create("TextButton", {
+        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(42, 22),
+        BackgroundColor3 = Theme.toggleOff, BorderSizePixel = 0, AutoButtonColor = false, Text = "",
+    }, parent)
+    corner(track, UDim.new(1, 0))
+    local trackStroke = stroke(track, Theme.border, 1, 0.9)
+    local knob = create("Frame", {
+        Size = UDim2.fromOffset(16, 16), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0,
+    }, track)
+    corner(knob, UDim.new(1, 0))
+    stroke(knob, Color3.new(0, 0, 0), 1, 0.82)
+    function switch:Set(on, instant)
+        self.Value = on == true
+        local trackGoal = { BackgroundColor3 = self.Value and Theme.toggleOn or Theme.toggleOff }
+        local knobGoal = { Position = self.Value and UDim2.new(0, 23, 0.5, -8) or UDim2.new(0, 3, 0.5, -8) }
+        trackStroke.Transparency = self.Value and 0.72 or 0.9
+        if instant then
+            track.BackgroundColor3 = trackGoal.BackgroundColor3
+            knob.Position = knobGoal.Position
+        else
+            TweenService:Create(track, Theme.tweenFast, trackGoal):Play()
+            TweenService:Create(knob, Theme.tweenSpring, knobGoal):Play()
+        end
+    end
+    connect(owner, track.Activated, function()
+        switch:Set(not switch.Value)
+        onChanged(switch.Value)
+    end)
+    switch:Set(value, true)
+    switch.Track = track
+    return switch
+end
+
+local function buildFilter(self, parent, top)
+    local view, spec = self.View, self.Options.Filter
+    view.FilterRow = create("Frame", {
+        Position = UDim2.new(0, 0, 0, top), Size = UDim2.new(1, 0, 0, Theme.filterHeight),
+        BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 4,
+    }, parent)
+    makeText(view.FilterRow, tostring(spec.Label or "Show"), {
+        Position = UDim2.new(0, 14, 0, 0), Size = UDim2.new(0, 46, 1, -6),
+        FontFace = Fonts.SemiBold, TextSize = 12, TextColor3 = Theme.textMuted, ZIndex = 5,
+    })
+    view.FilterSegment = makeSegmented(self, view.FilterRow, spec.Options or {}, function(option)
+        self:SetFilter(option)
+    end)
+    view.FilterSegment.Frame.Position = UDim2.new(0, 62, 0, 0)
+    view.FilterSegment.Frame.Size = UDim2.new(1, -72, 1, -6)
+end
+
+-- Auto Trade page: enable switch, minimum generation selector, bulk buttons and a grid of brainrot tiles.
+local function buildTradePage(self, top)
+    local view, spec = self.View, self.Options.AutoTrade
+    view.TradePage = create("Frame", {
+        Position = UDim2.new(0, 0, 0, top), Size = UDim2.new(1, 0, 1, -top),
+        BackgroundTransparency = 1, Visible = false, ZIndex = 3,
+    }, view.Window)
+
+    local switchCard = makeCard(view.TradePage, 50)
+    switchCard.Position = UDim2.new(0, 10, 0, 4)
+    switchCard.Size = UDim2.new(1, -20, 0, 50)
+    makeText(switchCard, "Auto Trade", {
+        Position = UDim2.new(0, 14, 0, 8), Size = UDim2.new(1, -80, 0, 18), FontFace = Fonts.SemiBold, TextSize = 13,
+    })
+    makeText(switchCard, "Sends a trade the moment a selected brainrot is logged", {
+        Position = UDim2.new(0, 14, 0, 26), Size = UDim2.new(1, -80, 0, 14), TextSize = 10,
+        TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
+    })
+    view.TradeSwitch = makeSwitch(self, switchCard, spec.Enabled == true, function(enabled)
+        self:SetAutoTradeEnabled(enabled, true)
+        if type(spec.OnToggle) == "function" then spec.OnToggle(enabled) end
+    end)
+
+    local minRow = create("Frame", {
+        Position = UDim2.new(0, 0, 0, 60), Size = UDim2.new(1, 0, 0, 38), BackgroundTransparency = 1,
+    }, view.TradePage)
+    makeText(minRow, "Min gen", {
+        Position = UDim2.new(0, 14, 0, 0), Size = UDim2.new(0, 56, 1, -6),
+        FontFace = Fonts.SemiBold, TextSize = 12, TextColor3 = Theme.textMuted,
+    })
+    view.TradeThreshold = makeSegmented(self, minRow, spec.Thresholds or { "200M" }, function(option)
+        self:SetAutoTradeThreshold(option)
+        if type(spec.OnThreshold) == "function" then spec.OnThreshold(option) end
+    end)
+    view.TradeThreshold.Frame.Position = UDim2.new(0, 72, 0, 0)
+    view.TradeThreshold.Frame.Size = UDim2.new(1, -82, 1, -6)
+
+    local toolbar = create("Frame", {
+        Position = UDim2.new(0, 10, 0, 100), Size = UDim2.new(1, -20, 0, 28), BackgroundTransparency = 1,
+    }, view.TradePage)
+    view.TradeSummary = makeText(toolbar, "0 selected", {
+        Position = UDim2.new(0, 4, 0, 0), Size = UDim2.new(1, -150, 1, 0), FontFace = Fonts.SemiBold,
+        TextSize = 12, TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
+    })
+    makeButton(self, toolbar, {
+        Text = "All", Bold = true, TextSize = 11, Height = 28, Size = UDim2.fromOffset(66, 28),
+        Position = UDim2.new(1, -138, 0, 0),
+        Callback = type(spec.OnSelectAll) == "function" and function() spec.OnSelectAll() end or nil,
+    })
+    makeButton(self, toolbar, {
+        Text = "None", Bold = true, TextSize = 11, Height = 28, TextColor = Theme.textMuted,
+        Size = UDim2.fromOffset(66, 28), Position = UDim2.new(1, -66, 0, 0),
+        Callback = type(spec.OnClear) == "function" and function() spec.OnClear() end or nil,
+    })
+
+    create("Frame", {
+        Position = UDim2.new(0, 10, 0, 136), Size = UDim2.new(1, -20, 0, 1),
+        BackgroundColor3 = Theme.border, BackgroundTransparency = 0.92, BorderSizePixel = 0,
+    }, view.TradePage)
+    view.TradeGrid = create("ScrollingFrame", {
+        Position = UDim2.new(0, 0, 0, 137), Size = UDim2.new(1, 0, 1, -137),
+        BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 3,
+        ScrollBarImageColor3 = Theme.border, ScrollBarImageTransparency = 0.7,
+        AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(),
+        ScrollingDirection = Enum.ScrollingDirection.Y,
+    }, view.TradePage)
+    create("UIGridLayout", {
+        CellSize = UDim2.new(1 / 3, -6, 0, Theme.tileHeight), CellPadding = UDim2.new(0, 8, 0, 8),
+        SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Center,
+    }, view.TradeGrid)
+    padding(view.TradeGrid, 11, 11, 8, 10)
 end
 
 local function buildBlacklistPanel(self, top)
@@ -694,8 +834,26 @@ local function buildWindow(self)
     view.Close = headerButton("×", 5)
     view.Close.TextSize = 18
 
+    local top = headerHeight
+    if self.Options.AutoTrade then
+        view.Nav = create("Frame", {
+            Position = UDim2.new(0, 0, 0, top), Size = UDim2.new(1, 0, 0, Theme.navHeight),
+            BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 4,
+        }, view.Window)
+        view.NavSegment = makeSegmented(self, view.Nav, { "Sniper", "Auto Trade" }, function(option)
+            self:SetPage(option)
+        end)
+        view.NavSegment.Frame.Position = UDim2.new(0, 10, 0, 3)
+        view.NavSegment.Frame.Size = UDim2.new(1, -20, 1, -6)
+        view.AutoTradeDot = create("Frame", {
+            AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0.5, 38, 0.5, 0), Size = UDim2.fromOffset(6, 6),
+            BackgroundColor3 = Theme.success, BorderSizePixel = 0, Visible = false, ZIndex = 7,
+        }, view.NavSegment.Buttons[2])
+        corner(view.AutoTradeDot, UDim.new(1, 0))
+        top = top + Theme.navHeight
+    end
     view.Bar = create("Frame", {
-        Position = UDim2.new(0, 0, 0, headerHeight), Size = UDim2.new(1, 0, 0, barHeight),
+        Position = UDim2.new(0, 0, 0, top), Size = UDim2.new(1, 0, 0, barHeight),
         BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 4,
     }, view.Window)
     local bar = create("Frame", {
@@ -720,19 +878,24 @@ local function buildWindow(self)
     })
     view.CountPill = makePillBadge(bar, "0 logged", Theme.textMuted, UDim2.new(1, -8, 0.5, 0), 22, 5)
 
-    local top = headerHeight + barHeight
-    if self.Options.Filter then
-        buildFilter(self, top)
-        top = top + Theme.filterHeight
-    end
-    view.Divider = create("Frame", {
-        Size = UDim2.new(1, -20, 0, 1), Position = UDim2.new(0, 10, 0, top),
-        BackgroundColor3 = Theme.border, BackgroundTransparency = 0.92, BorderSizePixel = 0, ZIndex = 4,
-    }, view.Window)
-    view.Content = create("Frame", {
-        Position = UDim2.new(0, 0, 0, top + 1), Size = UDim2.new(1, 0, 1, -(top + 1)),
+    top = top + barHeight
+    view.SniperPage = create("Frame", {
+        Position = UDim2.new(0, 0, 0, top), Size = UDim2.new(1, 0, 1, -top),
         BackgroundTransparency = 1, ZIndex = 3,
     }, view.Window)
+    local pageTop = 0
+    if self.Options.Filter then
+        buildFilter(self, view.SniperPage, pageTop)
+        pageTop = pageTop + Theme.filterHeight
+    end
+    view.Divider = create("Frame", {
+        Size = UDim2.new(1, -20, 0, 1), Position = UDim2.new(0, 10, 0, pageTop),
+        BackgroundColor3 = Theme.border, BackgroundTransparency = 0.92, BorderSizePixel = 0, ZIndex = 4,
+    }, view.SniperPage)
+    view.Content = create("Frame", {
+        Position = UDim2.new(0, 0, 0, pageTop + 1), Size = UDim2.new(1, 0, 1, -(pageTop + 1)),
+        BackgroundTransparency = 1, ZIndex = 3,
+    }, view.SniperPage)
     view.List = create("ScrollingFrame", {
         Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, BorderSizePixel = 0,
         ScrollBarThickness = 3, ScrollBarImageColor3 = Theme.border, ScrollBarImageTransparency = 0.7,
@@ -761,6 +924,7 @@ local function buildWindow(self)
         Position = UDim2.new(0, 0, 0, 62), Size = UDim2.new(1, 0, 0, 18), TextSize = 12,
         TextColor3 = Theme.textDim, TextXAlignment = Enum.TextXAlignment.Center, TextWrapped = true, ZIndex = 4,
     })
+    if self.Options.AutoTrade then buildTradePage(self, top) end
     if self.Options.Blacklist then buildBlacklistPanel(self, headerHeight) end
 end
 
@@ -962,12 +1126,13 @@ end
 
 function Controller:SetMinimized(value, instant)
     self.Minimized = value == true
-    self.View.Bar.Visible = not self.Minimized
-    if self.View.FilterRow then self.View.FilterRow.Visible = not self.Minimized end
+    local view = self.View
+    view.Bar.Visible = not self.Minimized
+    if view.Nav then view.Nav.Visible = not self.Minimized end
     if self.Minimized then self:ToggleBlacklist(false) end
-    self.View.Divider.Visible = not self.Minimized
-    self.View.Content.Visible = not self.Minimized
-    self.View.Minimize.Text = self.Minimized and "+" or "—"
+    view.SniperPage.Visible = not self.Minimized and self.Page ~= "Auto Trade"
+    if view.TradePage then view.TradePage.Visible = not self.Minimized and self.Page == "Auto Trade" end
+    view.Minimize.Text = self.Minimized and "+" or "—"
     local size = self.Minimized and self:CollapsedSize() or self:ExpandedSize()
     if instant then
         self.View.Window.Size = size
@@ -999,20 +1164,143 @@ end
 function Controller:SetFilter(value, silent)
     local spec = self.Options.Filter
     if self.Destroyed or not spec then return end
-    local options = spec.Options or {}
-    local index = table.find(options, value) or 1
-    local changed = self.Filter ~= options[index]
-    self.Filter = options[index]
-    for current, button in ipairs(self.View.FilterButtons) do
-        local active = current == index
-        button.BackgroundTransparency = 1
-        button.FontFace = active and Fonts.SemiBold or Fonts.Medium
-        TweenService:Create(button, Theme.tweenFast, { TextColor3 = active and Theme.activeTabText or Theme.textMuted }):Play()
-    end
-    TweenService:Create(self.View.FilterHighlight, Theme.tweenSlide, {
-        Position = UDim2.new((index - 1) / #options, 1, 0, 0),
+    local previous = self.Filter
+    self.Filter = self.View.FilterSegment:Set(value)
+    if self.Filter ~= previous and not silent and type(spec.OnChanged) == "function" then spec.OnChanged(self.Filter) end
+end
+
+local function announceTile(self, tile)
+    local spec = self.Options.AutoTrade
+    if tile.Announced or not tile.Shown or self.Page ~= "Auto Trade" then return end
+    tile.Announced = true
+    if type(spec.OnTileVisible) == "function" then task.spawn(spec.OnTileVisible, tile) end
+end
+
+function Tile:SetSelected(selected)
+    if self.Destroyed then return end
+    self.Selected = selected == true
+    self.Check.Visible = self.Selected
+    TweenService:Create(self.Outline, Theme.tweenFast, {
+        Color = self.Selected and Theme.accent or Theme.border,
+        Transparency = self.Selected and 0.25 or Theme.borderTransparency,
+        Thickness = self.Selected and 1.5 or 1,
     }):Play()
-    if changed and not silent and type(spec.OnChanged) == "function" then spec.OnChanged(self.Filter) end
+end
+
+function Tile:SetShown(shown)
+    if self.Destroyed then return end
+    self.Shown = shown ~= false
+    self.Frame.Visible = self.Shown
+    announceTile(self.Controller, self)
+end
+
+-- state: "loading", "ready" or "unavailable"
+function Tile:SetModelState(state)
+    if self.Destroyed then return end
+    self.Fallback.Visible = state ~= "ready"
+    self.Fallback.Text = state == "unavailable" and "Model\nunavailable" or "Loading..."
+end
+
+function Tile:Destroy()
+    if self.Destroyed then return end
+    self.Destroyed = true
+    disconnectAll(self)
+    if self.Frame.Parent then self.Frame:Destroy() end
+    self.Controller.Tiles[self] = nil
+end
+
+-- page: "Sniper" or "Auto Trade"
+function Controller:SetPage(page, instant)
+    local view = self.View
+    if self.Destroyed or not view.TradePage then return end
+    self.Page = view.NavSegment:Set(page, instant)
+    self:ToggleBlacklist(false)
+    view.SniperPage.Visible = not self.Minimized and self.Page ~= "Auto Trade"
+    view.TradePage.Visible = not self.Minimized and self.Page == "Auto Trade"
+    for tile in pairs(self.Tiles) do announceTile(self, tile) end
+end
+
+function Controller:SetAutoTradeEnabled(enabled, fromSwitch)
+    local view = self.View
+    if self.Destroyed or not view.TradeSwitch then return end
+    if not fromSwitch then view.TradeSwitch:Set(enabled) end
+    view.AutoTradeDot.Visible = enabled == true
+end
+
+function Controller:SetAutoTradeThreshold(value)
+    if self.Destroyed or not self.View.TradeThreshold then return end
+    return self.View.TradeThreshold:Set(value)
+end
+
+function Controller:SetAutoTradeSummary(text)
+    if self.Destroyed or not self.View.TradeSummary then return end
+    self.View.TradeSummary.Text = tostring(text or "")
+end
+
+-- ui:AddTradeTile({ Key, Name, Rarity, GenerationText, Order }) adds a selectable brainrot to the Auto Trade grid.
+-- Returns a tile with .Key, .Viewport, :SetSelected(bool), :SetShown(bool), :SetModelState(state), :Destroy().
+-- Clicks call AutoTrade.OnTilePressed(tile); AutoTrade.OnTileVisible(tile) fires once, the first time the tile is on screen.
+function Controller:AddTradeTile(data)
+    local view, spec = self.View, self.Options.AutoTrade
+    if self.Destroyed or not view.TradeGrid then return nil end
+    local tile = setmetatable({ Controller = self, Key = data.Key, Connections = {}, Shown = true, Selected = false }, Tile)
+    local frame = create("TextButton", {
+        BackgroundColor3 = Theme.bg2, BackgroundTransparency = Theme.cardTransparency, BorderSizePixel = 0,
+        AutoButtonColor = false, Text = "", LayoutOrder = data.Order or 0,
+    }, view.TradeGrid)
+    corner(frame, UDim.new(0, 10))
+    tile.Outline = stroke(frame)
+    tile.Frame = frame
+
+    local holder = create("Frame", {
+        Position = UDim2.new(0, 8, 0, 8), Size = UDim2.new(1, -16, 0, 84),
+        BackgroundColor3 = Theme.inputBg, BackgroundTransparency = Theme.inputTransparency,
+        BorderSizePixel = 0, ClipsDescendants = true,
+    }, frame)
+    corner(holder, UDim.new(0, 8))
+    tile.Viewport = create("ViewportFrame", {
+        Ambient = Color3.fromRGB(210, 215, 220), LightColor = Color3.new(1, 1, 1),
+        LightDirection = Vector3.new(-1, -1, -1), BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = 2,
+    }, holder)
+    corner(tile.Viewport, UDim.new(0, 8))
+    tile.Fallback = makeText(holder, "Loading...", {
+        Position = UDim2.new(), Size = UDim2.fromScale(1, 1), TextSize = 10, TextColor3 = Theme.textDim,
+        TextXAlignment = Enum.TextXAlignment.Center, TextWrapped = true,
+    })
+    tile.Check = makeText(frame, "✓", {
+        AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -4, 0, 4), Size = UDim2.fromOffset(20, 20),
+        BackgroundColor3 = Theme.accent, BackgroundTransparency = 0, FontFace = Fonts.Bold, TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Center, Visible = false, ZIndex = 4,
+    })
+    corner(tile.Check, UDim.new(1, 0))
+    stroke(tile.Check, Theme.gold, 1, 0.4)
+
+    makeText(frame, tostring(data.Name or data.Key), {
+        Position = UDim2.new(0, 8, 0, 98), Size = UDim2.new(1, -16, 0, 16),
+        FontFace = Fonts.SemiBold, TextSize = 11, TextTruncate = Enum.TextTruncate.AtEnd,
+    })
+    local rarity = tostring(data.Rarity or "")
+    makeText(frame, rarity, {
+        Position = UDim2.new(0, 8, 0, 118), Size = UDim2.new(0.5, -8, 0, 14), FontFace = Fonts.SemiBold, TextSize = 10,
+        TextColor3 = rarity == "OG" and Theme.gold or rarity == "Secret" and Theme.textPri or Theme.textMuted,
+    })
+    makeText(frame, tostring(data.GenerationText or ""), {
+        Position = UDim2.new(0.5, 0, 0, 118), Size = UDim2.new(0.5, -8, 0, 14), TextSize = 10,
+        TextColor3 = Theme.success, TextXAlignment = Enum.TextXAlignment.Right,
+    })
+
+    connect(tile, frame.MouseEnter, function()
+        TweenService:Create(frame, Theme.tweenFast, { BackgroundColor3 = Theme.hover }):Play()
+    end)
+    connect(tile, frame.MouseLeave, function()
+        TweenService:Create(frame, Theme.tweenFast, { BackgroundColor3 = Theme.bg2 }):Play()
+    end)
+    connect(tile, frame.Activated, function()
+        if type(spec.OnTilePressed) == "function" then spec.OnTilePressed(tile) end
+    end)
+    self.Tiles[tile] = true
+    announceTile(self, tile)
+    return tile
 end
 
 function Controller:RefreshCount()
@@ -1322,6 +1610,11 @@ function Controller:Destroy()
         disconnectAll(card)
     end
     table.clear(self.Cards)
+    for tile in pairs(self.Tiles) do
+        tile.Destroyed = true
+        disconnectAll(tile)
+    end
+    table.clear(self.Tiles)
     if self.BlacklistRows then disconnectAll(self.BlacklistRows) end
     disconnectAll(self)
     if self.View.Gui and self.View.Gui.Parent then self.View.Gui:Destroy() end
@@ -1330,12 +1623,16 @@ end
 
 -- UiLib.CreateSniper({ Subtitle = "OG Sniper", Status = "Starting...", StatusTone = "warning", OnClose = fn,
 --     Filter = { Label = "Show", Options = { "All", "Secrets", "OGs" }, Value = "All", OnChanged = fn },
---     Blacklist = { Users = { { UserId = 1, Label = "@user" } }, OnUnblock = fn } })
+--     Blacklist = { Users = { { UserId = 1, Label = "@user" } }, OnUnblock = fn },
+--     AutoTrade = { Enabled = false, Thresholds = { "150M", "200M" }, Threshold = "200M", OnToggle = fn,
+--         OnThreshold = fn, OnTilePressed = fn(tile), OnTileVisible = fn(tile), OnSelectAll = fn, OnClear = fn } })
 function UiLib.CreateSniper(options)
     if UiLib.Active then UiLib.Active:Destroy() end
     local self = setmetatable({
         Options = options or {},
         Connections = {},
+        Page = "Sniper",
+        Tiles = {},
         Cards = {},
         CardCount = 0,
         CardCounter = 0,
@@ -1349,8 +1646,13 @@ function UiLib.CreateSniper(options)
     buildWindow(self)
     wireWindow(self)
     self:SetStatus(self.Options.Status or "Starting...", self.Options.StatusTone or "warning")
-    if self.Options.Filter then self:SetFilter(self.Options.Filter.Value, true) end
+    if self.Options.Filter then self.Filter = self.View.FilterSegment:Set(self.Options.Filter.Value, true) end
     if self.Options.Blacklist then self:SetBlacklist(self.Options.Blacklist.Users) end
+    if self.Options.AutoTrade then
+        self:SetPage("Sniper", true)
+        self:SetAutoTradeEnabled(self.Options.AutoTrade.Enabled == true)
+        self.View.TradeThreshold:Set(self.Options.AutoTrade.Threshold, true)
+    end
     self:RefreshCount()
     local targetScale = self:UpdateScale(true)
     if not self.Options.Position then
