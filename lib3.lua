@@ -1,4 +1,4 @@
---og sniper · christmas theme xd4
+--og sniper · christmas theme
 local cloneref = cloneref or function(object) return object end
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
@@ -52,6 +52,7 @@ local UiLib = {
         rippleAsset = "rbxassetid://266543268",
         backgroundAsset = "rbxassetid://130379359123488",
         backgroundTransparency = 0.94,
+        backgroundStrengths = { Low = 0.78, Medium = 0.58, High = 0.38 },
         logoAsset = "rbxassetid://0",
         snowfall = true,
         width = 460,
@@ -565,6 +566,88 @@ local function buildTradePage(self, top)
     padding(view.TradeGrid, 11, 11, 8, 10)
 end
 
+-- Settings page: custom background from a URL plus its visibility.
+local function buildSettingsPage(self, top)
+    local view, spec = self.View, self.Options.Settings
+    view.SettingsPage = create("Frame", {
+        Position = UDim2.new(0, 0, 0, top), Size = UDim2.new(1, 0, 1, -top),
+        BackgroundTransparency = 1, Visible = false, ZIndex = 3,
+    }, view.Window)
+
+    local card = makeCard(view.SettingsPage, 206)
+    card.Position = UDim2.new(0, 10, 0, 8)
+    card.Size = UDim2.new(1, -20, 0, 206)
+    makeText(card, "Custom background", {
+        Position = UDim2.new(0, 14, 0, 12), Size = UDim2.new(1, -28, 0, 18), FontFace = Fonts.SemiBold, TextSize = 13,
+    })
+    makeText(card, "Paste a direct PNG, JPG or WebP link. GIFs are not supported.", {
+        Position = UDim2.new(0, 14, 0, 30), Size = UDim2.new(1, -28, 0, 14), TextSize = 10,
+        TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
+    })
+
+    local field = create("Frame", {
+        Position = UDim2.new(0, 12, 0, 54), Size = UDim2.new(1, -24, 0, 34),
+        BackgroundColor3 = Theme.inputBg, BackgroundTransparency = Theme.inputTransparency,
+        BorderSizePixel = 0, ClipsDescendants = true,
+    }, card)
+    corner(field, UDim.new(0, 8))
+    local fieldStroke = stroke(field, Theme.border, 1, 0.9)
+    view.BackgroundInput = create("TextBox", {
+        Position = UDim2.new(0, 10, 0, 0), Size = UDim2.new(1, -20, 1, 0), BackgroundTransparency = 1,
+        BorderSizePixel = 0, ClearTextOnFocus = false, FontFace = Fonts.Medium, TextSize = 12,
+        TextColor3 = Theme.textPri, PlaceholderText = "https://example.com/background.png",
+        PlaceholderColor3 = Theme.textDim, TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd, Text = tostring(spec.BackgroundUrl or ""),
+    }, field)
+    local function apply()
+        local url = view.BackgroundInput.Text:match("^%s*(.-)%s*$")
+        if type(spec.OnApplyBackground) == "function" then spec.OnApplyBackground(url) end
+    end
+    connect(self, view.BackgroundInput.Focused, function()
+        view.BackgroundInput.TextTruncate = Enum.TextTruncate.None
+        TweenService:Create(fieldStroke, Theme.tweenFast, { Color = Theme.accent, Transparency = 0.35 }):Play()
+    end)
+    connect(self, view.BackgroundInput.FocusLost, function(enterPressed)
+        view.BackgroundInput.TextTruncate = Enum.TextTruncate.AtEnd
+        TweenService:Create(fieldStroke, Theme.tweenFast, { Color = Theme.border, Transparency = 0.9 }):Play()
+        if enterPressed then apply() end
+    end)
+
+    local actions = create("Frame", {
+        Position = UDim2.new(0, 12, 0, 96), Size = UDim2.new(1, -24, 0, 30), BackgroundTransparency = 1,
+    }, card)
+    local applySize, applyPosition = gridCell(1, 2, 6, 30)
+    local resetSize, resetPosition = gridCell(2, 2, 6, 30)
+    makeButton(self, actions, {
+        Text = "Apply", Primary = true, Bold = true, TextSize = 12, Height = 30,
+        Size = applySize, Position = applyPosition, Callback = apply,
+    })
+    makeButton(self, actions, {
+        Text = "Reset", Bold = true, TextSize = 12, Height = 30, TextColor = Theme.textMuted,
+        Size = resetSize, Position = resetPosition,
+        Callback = type(spec.OnResetBackground) == "function" and function() spec.OnResetBackground() end or nil,
+    })
+
+    local strengthRow = create("Frame", {
+        Position = UDim2.new(0, 0, 0, 136), Size = UDim2.new(1, 0, 0, 32), BackgroundTransparency = 1,
+    }, card)
+    makeText(strengthRow, "Visibility", {
+        Position = UDim2.new(0, 14, 0, 0), Size = UDim2.new(0, 64, 1, 0),
+        FontFace = Fonts.SemiBold, TextSize = 12, TextColor3 = Theme.textMuted,
+    })
+    view.BackgroundStrength = makeSegmented(self, strengthRow, spec.Strengths or { "Low", "Medium", "High" }, function(option)
+        view.BackgroundStrength:Set(option)
+        if type(spec.OnStrength) == "function" then spec.OnStrength(option) end
+    end)
+    view.BackgroundStrength.Frame.Position = UDim2.new(0, 80, 0, 0)
+    view.BackgroundStrength.Frame.Size = UDim2.new(1, -92, 1, 0)
+
+    view.BackgroundStatus = makeText(card, "", {
+        Position = UDim2.new(0, 14, 0, 178), Size = UDim2.new(1, -28, 0, 16), TextSize = 11,
+        TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd,
+    })
+end
+
 local function buildBlacklistPanel(self, top)
     local view = self.View
     view.BlacklistPanel = create("Frame", {
@@ -687,12 +770,12 @@ local function buildWindow(self)
         NumberSequenceKeypoint.new(1, 0.9),
     }))
     frost.BackgroundColor3 = Theme.snow
-    local background = create("ImageLabel", {
+    view.Background = create("ImageLabel", {
         Name = "ZelqynBackground", Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
         BorderSizePixel = 0, Image = Theme.backgroundAsset, ImageColor3 = Theme.glow,
         ImageTransparency = Theme.backgroundTransparency, ScaleType = Enum.ScaleType.Crop, ZIndex = 1,
     }, view.Window)
-    corner(background, UDim.new(0, 14))
+    corner(view.Background, UDim.new(0, 14))
 
     local snowLayer = create("Frame", {
         Name = "Snowfall", Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
@@ -831,21 +914,27 @@ local function buildWindow(self)
     view.Close.TextSize = 18
 
     local top = headerHeight
-    if self.Options.AutoTrade then
+    local tabs = { "Sniper" }
+    if self.Options.AutoTrade then table.insert(tabs, "Auto Trade") end
+    if self.Options.Settings then table.insert(tabs, "Settings") end
+    if #tabs > 1 then
         view.Nav = create("Frame", {
             Position = UDim2.new(0, 0, 0, top), Size = UDim2.new(1, 0, 0, Theme.navHeight),
             BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 4,
         }, view.Window)
-        view.NavSegment = makeSegmented(self, view.Nav, { "Sniper", "Auto Trade" }, function(option)
+        view.NavSegment = makeSegmented(self, view.Nav, tabs, function(option)
             self:SetPage(option)
         end)
         view.NavSegment.Frame.Position = UDim2.new(0, 10, 0, 3)
         view.NavSegment.Frame.Size = UDim2.new(1, -20, 1, -6)
-        view.AutoTradeDot = create("Frame", {
-            AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0.5, 38, 0.5, 0), Size = UDim2.fromOffset(6, 6),
-            BackgroundColor3 = Theme.success, BorderSizePixel = 0, Visible = false, ZIndex = 7,
-        }, view.NavSegment.Buttons[2])
-        corner(view.AutoTradeDot, UDim.new(1, 0))
+        local tradeTab = table.find(tabs, "Auto Trade")
+        if tradeTab then
+            view.AutoTradeDot = create("Frame", {
+                AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0.5, 38, 0.5, 0), Size = UDim2.fromOffset(6, 6),
+                BackgroundColor3 = Theme.success, BorderSizePixel = 0, Visible = false, ZIndex = 7,
+            }, view.NavSegment.Buttons[tradeTab])
+            corner(view.AutoTradeDot, UDim.new(1, 0))
+        end
         top = top + Theme.navHeight
     end
     view.Bar = create("Frame", {
@@ -921,6 +1010,7 @@ local function buildWindow(self)
         TextColor3 = Theme.textDim, TextXAlignment = Enum.TextXAlignment.Center, TextWrapped = true, ZIndex = 4,
     })
     if self.Options.AutoTrade then buildTradePage(self, top) end
+    if self.Options.Settings then buildSettingsPage(self, top) end
     if self.Options.Blacklist then buildBlacklistPanel(self, headerHeight) end
 end
 
@@ -1048,6 +1138,13 @@ function Controller:UpdateScale(instant)
     return target
 end
 
+local function refreshPages(self)
+    local view = self.View
+    view.SniperPage.Visible = not self.Minimized and self.Page == "Sniper"
+    if view.TradePage then view.TradePage.Visible = not self.Minimized and self.Page == "Auto Trade" end
+    if view.SettingsPage then view.SettingsPage.Visible = not self.Minimized and self.Page == "Settings" end
+end
+
 function Controller:ToggleBlacklist(open)
     local view = self.View
     if self.Destroyed or not view.BlacklistPanel then return end
@@ -1126,8 +1223,7 @@ function Controller:SetMinimized(value, instant)
     view.Bar.Visible = not self.Minimized
     if view.Nav then view.Nav.Visible = not self.Minimized end
     if self.Minimized then self:ToggleBlacklist(false) end
-    view.SniperPage.Visible = not self.Minimized and self.Page ~= "Auto Trade"
-    if view.TradePage then view.TradePage.Visible = not self.Minimized and self.Page == "Auto Trade" end
+    refreshPages(self)
     view.Minimize.Text = self.Minimized and "+" or "—"
     local size = self.Minimized and self:CollapsedSize() or self:ExpandedSize()
     if instant then
@@ -1205,15 +1301,43 @@ function Tile:Destroy()
     self.Controller.Tiles[self] = nil
 end
 
--- page: "Sniper" or "Auto Trade"
+-- page: "Sniper", "Auto Trade" or "Settings"
 function Controller:SetPage(page, instant)
     local view = self.View
-    if self.Destroyed or not view.TradePage then return end
+    if self.Destroyed or not view.NavSegment then return end
     self.Page = view.NavSegment:Set(page, instant)
     self:ToggleBlacklist(false)
-    view.SniperPage.Visible = not self.Minimized and self.Page ~= "Auto Trade"
-    view.TradePage.Visible = not self.Minimized and self.Page == "Auto Trade"
+    refreshPages(self)
     for tile in pairs(self.Tiles) do announceTile(self, tile) end
+end
+
+-- ui:SetBackground("rbxasset://...", "Medium") shows a custom image (e.g. from getcustomasset); nil restores the theme default.
+function Controller:SetBackground(image, strength)
+    local background = self.View.Background
+    if self.Destroyed or not background then return end
+    if type(image) == "string" and image ~= "" then
+        if background.Image ~= image then background.ImageTransparency = 1 end
+        background.Image = image
+        background.ImageColor3 = Color3.new(1, 1, 1)
+        TweenService:Create(background, Theme.tweenMed, {
+            ImageTransparency = Theme.backgroundStrengths[strength] or Theme.backgroundStrengths.Medium,
+        }):Play()
+    else
+        background.Image = Theme.backgroundAsset
+        background.ImageColor3 = Theme.glow
+        background.ImageTransparency = Theme.backgroundTransparency
+    end
+end
+
+function Controller:SetBackgroundStatus(text, tone)
+    if self.Destroyed or not self.View.BackgroundStatus then return end
+    self.View.BackgroundStatus.Text = tostring(text or "")
+    self.View.BackgroundStatus.TextColor3 = toneColor(tone, Theme.textMuted)
+end
+
+function Controller:SetBackgroundUrl(url)
+    if self.Destroyed or not self.View.BackgroundInput then return end
+    self.View.BackgroundInput.Text = tostring(url or "")
 end
 
 function Controller:SetAutoTradeEnabled(enabled, fromSwitch)
@@ -1638,10 +1762,13 @@ function UiLib.CreateSniper(options)
     self:SetStatus(self.Options.Status or "Starting...", self.Options.StatusTone or "warning")
     if self.Options.Filter then self.Filter = self.View.FilterSegment:Set(self.Options.Filter.Value, true) end
     if self.Options.Blacklist then self:SetBlacklist(self.Options.Blacklist.Users) end
+    if self.View.NavSegment then self:SetPage("Sniper", true) end
     if self.Options.AutoTrade then
-        self:SetPage("Sniper", true)
         self:SetAutoTradeEnabled(self.Options.AutoTrade.Enabled == true)
         self.View.TradeThreshold:Set(self.Options.AutoTrade.Threshold, true)
+    end
+    if self.Options.Settings then
+        self.View.BackgroundStrength:Set(self.Options.Settings.BackgroundStrength or "Medium", true)
     end
     self:RefreshCount()
     local targetScale = self:UpdateScale(true)
