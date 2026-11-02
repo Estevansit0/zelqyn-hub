@@ -1,4 +1,4 @@
---v15 dual AI · christmas theme
+--v16 dual AI · christmas theme · custom background
 local cloneref = cloneref or function(object) return object end
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
@@ -56,6 +56,7 @@ local UiLib = {
         rippleAsset = "rbxassetid://266543268",
         backgroundAsset = "rbxassetid://130379359123488",
         backgroundTransparency = 0.94,
+        backgroundStrengths = { Low = 0.78, Medium = 0.58, High = 0.38 },
         logoAsset = "rbxassetid://0",
         snowfall = true,
         desktopWidth = 390,
@@ -650,6 +651,56 @@ local function makeStatusCard(parent, text, order)
     return card, label
 end
 
+-- Segmented control with a sliding highlight; onSelect(option) fires on clicks.
+local function makeSegmented(self, parent, options, onSelect)
+    local segmented = { Options = options, Buttons = {} }
+    local frame = create("Frame", {
+        BackgroundColor3 = Theme.segment, BackgroundTransparency = 0.2, BorderSizePixel = 0, ZIndex = 4,
+    }, parent)
+    corner(frame, UDim.new(0, 10))
+    stroke(frame, Theme.border, 1, 0.9)
+    padding(frame, 3, 3, 3, 3)
+    local highlight = create("Frame", {
+        Size = UDim2.new(1 / #options, -2, 1, 0), Position = UDim2.new(0, 1, 0, 0),
+        BackgroundColor3 = Theme.segmentActive, BackgroundTransparency = 0.05, BorderSizePixel = 0, ZIndex = 5,
+    }, frame)
+    corner(highlight, UDim.new(0, 7))
+    stroke(highlight, Theme.border, 1, 0.88)
+    create("UIGradient", {
+        Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(204, 212, 209)), Rotation = 90,
+    }, highlight)
+    for index, option in ipairs(options) do
+        local button = create("TextButton", {
+            Size = UDim2.new(1 / #options, -2, 1, 0), Position = UDim2.new((index - 1) / #options, 1, 0, 0),
+            BackgroundColor3 = Theme.hover, BackgroundTransparency = 1, BorderSizePixel = 0, AutoButtonColor = false,
+            FontFace = Fonts.Medium, TextSize = 12, TextColor3 = Theme.textMuted, Text = tostring(option), ZIndex = 6,
+        }, frame)
+        corner(button, UDim.new(0, 7))
+        segmented.Buttons[index] = button
+        connect(self, button.Activated, function() onSelect(option) end)
+        hoverFill(self, button, 1, 0.6, function() return segmented.Value == option end)
+    end
+    function segmented:Set(value, instant)
+        local index = table.find(self.Options, value) or 1
+        self.Value = self.Options[index]
+        for current, button in ipairs(self.Buttons) do
+            local active = current == index
+            button.BackgroundTransparency = 1
+            button.FontFace = active and Fonts.SemiBold or Fonts.Medium
+            TweenService:Create(button, Theme.tweenFast, { TextColor3 = active and Theme.activeTabText or Theme.textMuted }):Play()
+        end
+        local position = UDim2.new((index - 1) / #self.Options, 1, 0, 0)
+        if instant then
+            highlight.Position = position
+        else
+            TweenService:Create(highlight, Theme.tweenSlide, { Position = position }):Play()
+        end
+        return self.Value
+    end
+    segmented.Frame = frame
+    return segmented
+end
+
 local TabData = {
     { "Home", "Code Redeemer", 650, 660 },
     { "Rules", "Trigger Matrix", 330, 340 },
@@ -658,6 +709,7 @@ local TabData = {
     { "Sender", "Test Sender", 345, 355 },
     { "Buy", "Auto Buy", 390, 400 },
     { "Sell", "Auto Sell", 345, 355 },
+    { "UI", "Interface", 425, 430 },
 }
 
 local function viewportSize()
@@ -1402,6 +1454,66 @@ local function buildAutoSell(self)
     self.View.AASellStatus = aaSellStatus
 end
 
+local function buildInterface(self)
+    local page = self.View.Pages[8]
+    local urlCard = makeCard(page, 78, 1)
+    makeText(urlCard, "Background Image", { Size = UDim2.new(1, -110, 0, 32), FontFace = Fonts.SemiBold, TextSize = 13 })
+    makePillBadge(urlCard, "PNG · JPG · WEBP", Theme.textMuted, UDim2.new(1, -10, 0, 16), 18, 4)
+    local field = create("Frame", {
+        Position = UDim2.new(0, 10, 0, 36), Size = UDim2.new(1, -20, 0, 34),
+        BackgroundColor3 = Theme.inputBg, BackgroundTransparency = Theme.inputTransparency,
+        BorderSizePixel = 0, ClipsDescendants = true,
+    }, urlCard)
+    corner(field, UDim.new(0, 8))
+    local outline = stroke(field, Theme.border, 1, 0.9)
+    local box = create("TextBox", {
+        Position = UDim2.new(0, 10, 0, 0), Size = UDim2.new(1, -20, 1, 0),
+        BackgroundTransparency = 1, BorderSizePixel = 0, ClearTextOnFocus = false, MultiLine = false,
+        FontFace = Fonts.Medium, TextSize = 12, TextColor3 = Theme.textPri,
+        PlaceholderText = "https://example.com/background.png", PlaceholderColor3 = Theme.textDim,
+        TextXAlignment = Enum.TextXAlignment.Left, Text = tostring(self.State.BackgroundUrl or ""),
+    }, field)
+    clipInput(self, box)
+    focusOutline(self, box, outline, 0.9)
+    hover(self, urlCard, box)
+    self.View.BackgroundInput = box
+    local function apply()
+        emit(self, "ApplyBackground", box.Text:match("^%s*(.-)%s*$"))
+    end
+    connect(self, box.FocusLost, function(enterPressed)
+        if enterPressed then apply() end
+    end)
+
+    local actions = create("Frame", { Size = UDim2.new(1, 0, 0, 40), BackgroundTransparency = 1, LayoutOrder = 2 }, page)
+    local applyButton = makeButton(self, actions, {
+        Text = "Apply Background", Bold = true, Primary = true,
+        Size = UDim2.new(0.5, -3, 0, 40), Position = UDim2.new(0, 0, 0, 0),
+    })
+    connect(self, applyButton.Button.Activated, apply)
+    makeButton(self, actions, {
+        Text = "Reset", Callback = "ResetBackground", Bold = true, TextColor = Theme.textMuted,
+        Size = UDim2.new(0.5, -3, 0, 40), Position = UDim2.new(0.5, 3, 0, 0),
+    })
+
+    local strengthCard = makeCard(page, 44, 3)
+    makeText(strengthCard, "Visibility", { Size = UDim2.new(1, -210, 1, 0) })
+    local strength
+    strength = makeSegmented(self, strengthCard, { "Low", "Medium", "High" }, function(option)
+        if strength.Value == option then return end
+        strength:Set(option)
+        emit(self, "BackgroundStrengthChanged", option)
+    end)
+    strength.Frame.AnchorPoint = Vector2.new(1, 0.5)
+    strength.Frame.Position = UDim2.new(1, -8, 0.5, 0)
+    strength.Frame.Size = UDim2.new(0, 186, 0, 30)
+    strength:Set(self.State.BackgroundStrength or "Medium", true)
+    self.View.BackgroundStrength = strength
+
+    makeParagraph(page, "Custom Background", "Paste a direct PNG, JPG or WebP link (GIFs are not supported). It downloads once and stays saved on your device.", 76, 4)
+    local _, backgroundStatus = makeStatusCard(page, "Using the default background", 5)
+    self.View.BackgroundStatus = backgroundStatus
+end
+
 function Controller:SetLastMessage(text)
     if not self.View.LastMessage then return end
     local value = tostring(text or "")
@@ -1677,6 +1789,38 @@ function Controller:SetSenderStatus(text, successful)
         or Theme.textMuted
 end
 
+-- ui:SetBackground("rbxasset://...", "Medium") shows a custom image (e.g. from getcustomasset); nil restores the theme default.
+function Controller:SetBackground(image, strength)
+    local background = self.View.Background
+    if self.Destroyed or not background then return end
+    if type(image) == "string" and image ~= "" then
+        if background.Image ~= image then background.ImageTransparency = 1 end
+        background.Image = image
+        background.ImageColor3 = Color3.new(1, 1, 1)
+        TweenService:Create(background, Theme.tweenMed, {
+            ImageTransparency = Theme.backgroundStrengths[strength] or Theme.backgroundStrengths.Medium,
+        }):Play()
+    else
+        background.Image = Theme.backgroundAsset
+        background.ImageColor3 = Theme.glow
+        background.ImageTransparency = Theme.backgroundTransparency
+    end
+end
+
+local BackgroundTones = { success = "success", warning = "warning", error = "danger", muted = "textMuted" }
+
+-- tone: "success", "warning", "error" or "muted"
+function Controller:SetBackgroundStatus(text, tone)
+    if self.Destroyed or not self.View.BackgroundStatus then return end
+    self.View.BackgroundStatus.Text = tostring(text or "")
+    self.View.BackgroundStatus.TextColor3 = Theme[BackgroundTones[tone] or "textMuted"]
+end
+
+function Controller:SetBackgroundUrl(url)
+    if self.Destroyed or not self.View.BackgroundInput then return end
+    self.View.BackgroundInput.Text = tostring(url or "")
+end
+
 function Controller:Log(entry)
     if not self.View.LogScroll then return end
     local raw = tostring(entry or "")
@@ -1764,6 +1908,7 @@ function UiLib.CreateRedeemer(options)
     buildSender(self)
     buildAutoBuy(self)
     buildAutoSell(self)
+    buildInterface(self)
     self:SetOptimizerApplied(self.State.OptimizerApplied == true)
     wireWindow(self)
     self:SetTab(self.Options.ActiveTab or 1, true)
