@@ -1,4 +1,4 @@
---og sniper · christmas theme
+--og sniper · christmas theme x
 local cloneref = cloneref or function(object) return object end
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
@@ -429,6 +429,65 @@ local function buildFilter(self, top)
     end
 end
 
+local function buildBlacklistPanel(self, top)
+    local view = self.View
+    view.BlacklistPanel = create("Frame", {
+        Name = "BlacklistPanel", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, top - 4),
+        Size = UDim2.fromOffset(300, 262), BackgroundColor3 = Theme.bg1, BackgroundTransparency = 0.02,
+        BorderSizePixel = 0, Visible = false, Active = true, ZIndex = 20,
+    }, view.Window)
+    corner(view.BlacklistPanel, UDim.new(0, 12))
+    stroke(view.BlacklistPanel, Theme.border, 1, 0.8)
+    view.BlacklistScale = create("UIScale", { Scale = 1 }, view.BlacklistPanel)
+    local wash = create("Frame", {
+        Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Theme.accent, BorderSizePixel = 0,
+    }, view.BlacklistPanel)
+    corner(wash, UDim.new(0, 12))
+    create("UIGradient", {
+        Rotation = 90,
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.86), NumberSequenceKeypoint.new(0.35, 1), NumberSequenceKeypoint.new(1, 1),
+        }),
+    }, wash)
+    makeText(view.BlacklistPanel, tostring(self.Options.Blacklist.Title or "Blacklisted players"), {
+        Position = UDim2.new(0, 14, 0, 10), Size = UDim2.new(1, -60, 0, 20), FontFace = Fonts.SemiBold, TextSize = 13,
+    })
+    view.BlacklistCount = makeText(view.BlacklistPanel, "0 players blocked", {
+        Position = UDim2.new(0, 14, 0, 30), Size = UDim2.new(1, -60, 0, 14), TextSize = 10, TextColor3 = Theme.textDim,
+    })
+    view.BlacklistClose = create("TextButton", {
+        AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 10), Size = UDim2.fromOffset(26, 26),
+        BackgroundColor3 = Theme.hover, BackgroundTransparency = 1, BorderSizePixel = 0, AutoButtonColor = false,
+        FontFace = Fonts.SemiBold, TextSize = 16, TextColor3 = Theme.textMuted, Text = "×",
+    }, view.BlacklistPanel)
+    corner(view.BlacklistClose, UDim.new(0, 8))
+    create("Frame", {
+        Position = UDim2.new(0, 10, 0, 52), Size = UDim2.new(1, -20, 0, 1),
+        BackgroundColor3 = Theme.border, BackgroundTransparency = 0.92, BorderSizePixel = 0,
+    }, view.BlacklistPanel)
+    view.BlacklistList = create("ScrollingFrame", {
+        Position = UDim2.new(0, 10, 0, 60), Size = UDim2.new(1, -20, 1, -68),
+        BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 3,
+        ScrollBarImageColor3 = Theme.border, ScrollBarImageTransparency = 0.7,
+        AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(),
+        ScrollingDirection = Enum.ScrollingDirection.Y,
+    }, view.BlacklistPanel)
+    create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }, view.BlacklistList)
+    padding(view.BlacklistList, 0, 5, 0, 4)
+    view.BlacklistEmpty = create("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 0, 0.5, 26), Size = UDim2.new(1, -40, 0, 56),
+        BackgroundTransparency = 1,
+    }, view.BlacklistPanel)
+    makeText(view.BlacklistEmpty, "No blacklisted players", {
+        Position = UDim2.new(), Size = UDim2.new(1, 0, 0, 20), FontFace = Fonts.SemiBold, TextSize = 12,
+        TextColor3 = Theme.textMuted, TextXAlignment = Enum.TextXAlignment.Center,
+    })
+    makeText(view.BlacklistEmpty, "Use Blacklist on a card to hide every entry from that player", {
+        Position = UDim2.new(0, 0, 0, 22), Size = UDim2.new(1, 0, 0, 30), TextSize = 10, TextColor3 = Theme.textDim,
+        TextXAlignment = Enum.TextXAlignment.Center, TextWrapped = true,
+    })
+end
+
 local function buildWindow(self)
     local view = self.View
     local headerHeight = UiLib.IsTouch and 48 or 50
@@ -588,18 +647,51 @@ local function buildWindow(self)
         Size = UDim2.new(0, 190, 0, 14), Position = UDim2.new(0, 52, 0, headerHeight / 2 + 2),
         TextSize = 11, TextColor3 = Theme.textMuted, ZIndex = 5,
     })
-    view.HeaderPill = makePillBadge(view.Header, "Waiting", Theme.warning, UDim2.new(1, -78, 0.5, 0), 22, 5, true)
-    local function headerButton(text, position)
+    local controls = create("Frame", {
+        Name = "Controls", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0),
+        Size = UDim2.new(0, 0, 0, 28), AutomaticSize = Enum.AutomaticSize.X, BackgroundTransparency = 1, ZIndex = 5,
+    }, view.Header)
+    create("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right,
+        VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder,
+    }, controls)
+    view.HeaderPill = makePillBadge(controls, "Waiting", Theme.warning, nil, 22, 5, true)
+    view.HeaderPill.AnchorPoint = Vector2.new(0, 0)
+    view.HeaderPill.LayoutOrder = 1
+    create("Frame", { Size = UDim2.fromOffset(4, 1), BackgroundTransparency = 1, LayoutOrder = 2 }, controls)
+    local function headerButton(text, order)
         local button = create("TextButton", {
-            Size = UDim2.new(0, 28, 0, 28), AnchorPoint = Vector2.new(1, 0.5), Position = position,
+            Size = UDim2.new(0, 28, 0, 28), LayoutOrder = order,
             BackgroundColor3 = Theme.hover, BackgroundTransparency = 1, BorderSizePixel = 0, AutoButtonColor = false,
             FontFace = Fonts.SemiBold, TextSize = 14, TextColor3 = Theme.textMuted, Text = text, ZIndex = 5,
-        }, view.Header)
+        }, controls)
         corner(button, UDim.new(0, 8))
         return button
     end
-    view.Minimize = headerButton("—", UDim2.new(1, -42, 0.5, 0))
-    view.Close = headerButton("×", UDim2.new(1, -10, 0.5, 0))
+    if self.Options.Blacklist then
+        view.BlacklistButton = headerButton("", 3)
+        view.BlacklistRing = create("Frame", {
+            AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(14, 14),
+            BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 6,
+        }, view.BlacklistButton)
+        corner(view.BlacklistRing, UDim.new(1, 0))
+        view.BlacklistRingStroke = stroke(view.BlacklistRing, Theme.textMuted, 1.5, 0)
+        view.BlacklistSlash = create("Frame", {
+            AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(15, 2),
+            BackgroundColor3 = Theme.textMuted, BorderSizePixel = 0, Rotation = -45, ZIndex = 6,
+        }, view.BlacklistButton)
+        corner(view.BlacklistSlash, UDim.new(1, 0))
+        view.BlacklistBadge = makeText(view.BlacklistButton, "0", {
+            AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 3, 0, -2), Size = UDim2.fromOffset(14, 14),
+            AutomaticSize = Enum.AutomaticSize.X, BackgroundColor3 = Theme.accent, BackgroundTransparency = 0,
+            FontFace = Fonts.Bold, TextSize = 9, TextXAlignment = Enum.TextXAlignment.Center,
+            Visible = false, ZIndex = 7,
+        })
+        corner(view.BlacklistBadge, UDim.new(1, 0))
+        padding(view.BlacklistBadge, 3, 3, 0, 0)
+    end
+    view.Minimize = headerButton("—", 4)
+    view.Close = headerButton("×", 5)
     view.Close.TextSize = 18
 
     view.Bar = create("Frame", {
@@ -669,6 +761,7 @@ local function buildWindow(self)
         Position = UDim2.new(0, 0, 0, 62), Size = UDim2.new(1, 0, 0, 18), TextSize = 12,
         TextColor3 = Theme.textDim, TextXAlignment = Enum.TextXAlignment.Center, TextWrapped = true, ZIndex = 4,
     })
+    if self.Options.Blacklist then buildBlacklistPanel(self, headerHeight) end
 end
 
 local function wireWindow(self)
@@ -684,6 +777,23 @@ local function wireWindow(self)
     end)
     hoverFill(self, view.Minimize)
     hoverFill(self, view.Close, Theme.danger)
+    if view.BlacklistButton then
+        local function tintIcon(color)
+            TweenService:Create(view.BlacklistRingStroke, Theme.tweenFast, { Color = color }):Play()
+            TweenService:Create(view.BlacklistSlash, Theme.tweenFast, { BackgroundColor3 = color }):Play()
+        end
+        connect(self, view.BlacklistButton.Activated, function() self:ToggleBlacklist() end)
+        connect(self, view.BlacklistClose.Activated, function() self:ToggleBlacklist(false) end)
+        hoverFill(self, view.BlacklistClose)
+        connect(self, view.BlacklistButton.MouseEnter, function()
+            TweenService:Create(view.BlacklistButton, Theme.tweenFast, { BackgroundTransparency = 0.55 }):Play()
+            tintIcon(Theme.accentText)
+        end)
+        connect(self, view.BlacklistButton.MouseLeave, function()
+            TweenService:Create(view.BlacklistButton, Theme.tweenFast, { BackgroundTransparency = 1 }):Play()
+            tintIcon(view.BlacklistPanel.Visible and Theme.accentText or Theme.textMuted)
+        end)
+    end
     connect(self, view.Header.InputBegan, function(input)
         if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then return end
         dragging, dragStart, startPosition = true, input.Position, view.Window.Position
@@ -778,10 +888,83 @@ function Controller:UpdateScale(instant)
     return target
 end
 
+function Controller:ToggleBlacklist(open)
+    local view = self.View
+    if self.Destroyed or not view.BlacklistPanel then return end
+    if open == nil then open = not view.BlacklistPanel.Visible end
+    if open and self.Minimized then self:SetMinimized(false) end
+    view.BlacklistPanel.Visible = open
+    local color = open and Theme.accentText or Theme.textMuted
+    view.BlacklistRingStroke.Color = color
+    view.BlacklistSlash.BackgroundColor3 = color
+    if open then
+        view.BlacklistScale.Scale = 0.94
+        TweenService:Create(view.BlacklistScale, Theme.tweenSpring, { Scale = 1 }):Play()
+    end
+end
+
+-- ui:SetBlacklist({ { UserId = 1, Label = "@user" }, ... }) redraws the blacklist panel and header badge.
+-- Unblock buttons call Blacklist.OnUnblock(userId).
+function Controller:SetBlacklist(list)
+    local view = self.View
+    if self.Destroyed or not view.BlacklistList then return end
+    local entries = {}
+    for _, item in ipairs(list or {}) do
+        local userId = tonumber(item.UserId)
+        if userId then
+            table.insert(entries, { UserId = userId, Label = tostring(item.Label or ("User " .. userId)) })
+        end
+    end
+    table.sort(entries, function(left, right)
+        return string.lower(left.Label) < string.lower(right.Label)
+    end)
+
+    local rows = self.BlacklistRows
+    if rows then
+        disconnectAll(rows)
+        for _, frame in ipairs(rows.Frames) do frame:Destroy() end
+    end
+    rows = { Connections = {}, Frames = {} }
+    self.BlacklistRows = rows
+
+    local onUnblock = self.Options.Blacklist.OnUnblock
+    for index, entry in ipairs(entries) do
+        local row = makeCard(view.BlacklistList, 50, index)
+        local avatar = create("ImageLabel", {
+            Position = UDim2.new(0, 8, 0.5, -17), Size = UDim2.fromOffset(34, 34),
+            BackgroundColor3 = Theme.inputBg, BackgroundTransparency = Theme.inputTransparency, BorderSizePixel = 0,
+            Image = ("rbxthumb://type=AvatarHeadShot&id=%d&w=100&h=100"):format(entry.UserId),
+            ScaleType = Enum.ScaleType.Crop,
+        }, row)
+        corner(avatar, UDim.new(1, 0))
+        stroke(avatar, Theme.border, 1, 0.85)
+        makeText(row, entry.Label, {
+            Position = UDim2.new(0, 50, 0, 8), Size = UDim2.new(1, -136, 0, 18),
+            FontFace = Fonts.SemiBold, TextSize = 12, TextTruncate = Enum.TextTruncate.AtEnd,
+        })
+        makeText(row, "ID " .. entry.UserId, {
+            Position = UDim2.new(0, 50, 0, 26), Size = UDim2.new(1, -136, 0, 14), TextSize = 10, TextColor3 = Theme.textDim,
+        })
+        makeButton(rows, row, {
+            Text = "Unblock", Bold = true, TextSize = 11, TextColor = Theme.accentText, Height = 28,
+            Size = UDim2.fromOffset(74, 28), Position = UDim2.new(1, -82, 0.5, -14),
+            Callback = type(onUnblock) == "function" and function() onUnblock(entry.UserId) end or nil,
+        })
+        table.insert(rows.Frames, row)
+    end
+
+    local count = #entries
+    view.BlacklistBadge.Visible = count > 0
+    view.BlacklistBadge.Text = count > 99 and "99+" or tostring(count)
+    view.BlacklistCount.Text = count .. (count == 1 and " player blocked" or " players blocked")
+    view.BlacklistEmpty.Visible = count == 0
+end
+
 function Controller:SetMinimized(value, instant)
     self.Minimized = value == true
     self.View.Bar.Visible = not self.Minimized
     if self.View.FilterRow then self.View.FilterRow.Visible = not self.Minimized end
+    if self.Minimized then self:ToggleBlacklist(false) end
     self.View.Divider.Visible = not self.Minimized
     self.View.Content.Visible = not self.Minimized
     self.View.Minimize.Text = self.Minimized and "+" or "—"
@@ -1139,13 +1322,15 @@ function Controller:Destroy()
         disconnectAll(card)
     end
     table.clear(self.Cards)
+    if self.BlacklistRows then disconnectAll(self.BlacklistRows) end
     disconnectAll(self)
     if self.View.Gui and self.View.Gui.Parent then self.View.Gui:Destroy() end
     if UiLib.Active == self then UiLib.Active = nil end
 end
 
 -- UiLib.CreateSniper({ Subtitle = "OG Sniper", Status = "Starting...", StatusTone = "warning", OnClose = fn,
---     Filter = { Label = "Show", Options = { "All", "Secrets", "OGs" }, Value = "All", OnChanged = fn } })
+--     Filter = { Label = "Show", Options = { "All", "Secrets", "OGs" }, Value = "All", OnChanged = fn },
+--     Blacklist = { Users = { { UserId = 1, Label = "@user" } }, OnUnblock = fn } })
 function UiLib.CreateSniper(options)
     if UiLib.Active then UiLib.Active:Destroy() end
     local self = setmetatable({
@@ -1165,6 +1350,7 @@ function UiLib.CreateSniper(options)
     wireWindow(self)
     self:SetStatus(self.Options.Status or "Starting...", self.Options.StatusTone or "warning")
     if self.Options.Filter then self:SetFilter(self.Options.Filter.Value, true) end
+    if self.Options.Blacklist then self:SetBlacklist(self.Options.Blacklist.Users) end
     self:RefreshCount()
     local targetScale = self:UpdateScale(true)
     if not self.Options.Position then
