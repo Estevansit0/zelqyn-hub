@@ -1,4 +1,4 @@
---og sniper · christmas theme xd
+--og sniper · christmas theme xd2
 local cloneref = cloneref or function(object) return object end
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
@@ -58,7 +58,7 @@ local UiLib = {
         height = 620,
         navHeight = 38,
         tileHeight = 148,
-        cardHeight = 180,
+        cardHeight = 148,
         filterHeight = 38,
         mobileScaleBase = 500,
         mobileMinScale = 0.6,
@@ -328,13 +328,9 @@ local function mobileScale(viewport)
 end
 
 local CardActions = {
-    { Name = "Send", Row = 1, Column = 1, Primary = true },
-    { Name = "Target", Row = 1, Column = 2, Tone = "accentText" },
-    { Name = "Duel", Row = 1, Column = 3, Tone = "info" },
-    { Name = "Copy", Row = 2, Column = 1, Tone = "textPri" },
-    { Name = "Scan", Row = 2, Column = 2, Tone = "textMuted" },
-    { Name = "Blacklist", Row = 2, Column = 3, Tone = "textMuted" },
-    { Name = "Track", Row = 2, Column = 4, Tone = "textMuted" },
+    { Name = "Send", Primary = true },
+    { Name = "Duel", Tone = "info" },
+    { Name = "Blacklist", Tone = "textMuted" },
 }
 
 function Card:SetOwner(userId, label)
@@ -1316,7 +1312,7 @@ function Controller:RefreshCount()
         or ("Switch the filter to see the other " .. total .. (total == 1 and " entry" or " entries"))
 end
 
--- ui:AddCard({ Name, Rarity, Mutation, IsLocalServer }, { Send = fn, Target = fn, Duel = fn, Copy = fn, Scan = fn, Blacklist = fn, Track = fn })
+-- ui:AddCard({ Name, Rarity, Mutation, IsLocalServer }, { Send = fn, Duel = fn, Blacklist = fn })
 -- Returns a card with :SetOwner(userId, label), :SetModelState(state), :SetShown(bool), :SetActionText(name, text),
 -- :ResetActionText(name), :Destroy() and a .Viewport for the brainrot model. Newest cards go on top.
 function Controller:AddCard(data, actions)
@@ -1393,21 +1389,15 @@ function Controller:AddCard(data, actions)
     })
 
     local actionArea = create("Frame", {
-        Position = UDim2.new(0, 12, 0, 106), Size = UDim2.new(1, -24, 0, 62), BackgroundTransparency = 1,
+        Position = UDim2.new(0, 12, 0, 106), Size = UDim2.new(1, -24, 0, 30), BackgroundTransparency = 1,
     }, frame)
-    local rows = {
-        create("Frame", { Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 1 }, actionArea),
-        create("Frame", { Position = UDim2.new(0, 0, 0, 36), Size = UDim2.new(1, 0, 0, 26), BackgroundTransparency = 1 }, actionArea),
-    }
-    for _, action in ipairs(CardActions) do
-        local columns = action.Row == 1 and 3 or 4
-        local height = action.Row == 1 and 30 or 26
-        local size, position = gridCell(action.Column, columns, 6, height)
+    for index, action in ipairs(CardActions) do
+        local size, position = gridCell(index, #CardActions, 6, 30)
         local callback = actions[action.Name]
-        card.Buttons[action.Name] = makeButton(card, rows[action.Row], {
-            Text = action.Name, Primary = action.Primary, Bold = action.Row == 1,
-            TextColor = action.Tone and Theme[action.Tone] or nil, TextSize = action.Row == 1 and 12 or 11,
-            Height = height, Size = size, Position = position,
+        card.Buttons[action.Name] = makeButton(card, actionArea, {
+            Text = action.Name, Primary = action.Primary, Bold = true,
+            TextColor = action.Tone and Theme[action.Tone] or nil, TextSize = 12,
+            Height = 30, Size = size, Position = position,
             Callback = callback and function() callback(card) end or nil,
         })
     end
