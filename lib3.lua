@@ -15,6 +15,7 @@ local UiLib = {
         bg3 = Color3.fromRGB(20, 26, 25),
         hover = Color3.fromRGB(43, 52, 50),
         segment = Color3.fromRGB(17, 22, 21),
+        segmentActive = Color3.fromRGB(55, 65, 62),
         inputBg = Color3.fromRGB(11, 14, 14),
         border = Color3.fromRGB(255, 255, 255),
         windowTop = Color3.fromRGB(19, 23, 23),
@@ -43,6 +44,7 @@ local UiLib = {
         tweenMed = TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
         tweenSnap = TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
         tweenSpring = TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        tweenSlide = TweenInfo.new(0.26, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
         tweenNoticeIn = TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
         tweenNoticeOut = TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
         rippleAsset = "rbxassetid://266543268",
@@ -53,6 +55,7 @@ local UiLib = {
         width = 460,
         height = 580,
         cardHeight = 180,
+        filterHeight = 38,
         mobileScaleBase = 500,
         mobileMinScale = 0.6,
         mobileMaxScale = 0.85,
@@ -346,6 +349,14 @@ function Card:SetModelState(state)
     self.Fallback.Text = state == "unavailable" and "Model\nunavailable" or "Loading..."
 end
 
+function Card:SetShown(shown)
+    shown = shown ~= false
+    if self.Destroyed or self.Shown == shown then return end
+    self.Shown = shown
+    self.Frame.Visible = shown
+    self.Controller:RefreshCount()
+end
+
 function Card:SetActionText(name, text)
     local control = self.Buttons[name]
     if self.Destroyed or not control then return end
@@ -367,6 +378,54 @@ function Card:Destroy()
         controller.Cards[self] = nil
         controller.CardCount = controller.CardCount - 1
         if not controller.Destroyed then controller:RefreshCount() end
+    end
+end
+
+local function buildFilter(self, top)
+    local view, spec = self.View, self.Options.Filter
+    local options = spec.Options or {}
+    view.FilterRow = create("Frame", {
+        Position = UDim2.new(0, 0, 0, top), Size = UDim2.new(1, 0, 0, Theme.filterHeight),
+        BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 4,
+    }, view.Window)
+    makeText(view.FilterRow, tostring(spec.Label or "Show"), {
+        Position = UDim2.new(0, 14, 0, 0), Size = UDim2.new(0, 46, 1, -6),
+        FontFace = Fonts.SemiBold, TextSize = 12, TextColor3 = Theme.textMuted, ZIndex = 5,
+    })
+    local segment = create("Frame", {
+        Position = UDim2.new(0, 62, 0, 0), Size = UDim2.new(1, -72, 1, -6),
+        BackgroundColor3 = Theme.segment, BackgroundTransparency = 0.2, BorderSizePixel = 0, ZIndex = 4,
+    }, view.FilterRow)
+    corner(segment, UDim.new(0, 10))
+    stroke(segment, Theme.border, 1, 0.9)
+    padding(segment, 3, 3, 3, 3)
+    view.FilterHighlight = create("Frame", {
+        Size = UDim2.new(1 / #options, -2, 1, 0), Position = UDim2.new(0, 1, 0, 0),
+        BackgroundColor3 = Theme.segmentActive, BackgroundTransparency = 0.05, BorderSizePixel = 0, ZIndex = 5,
+    }, segment)
+    corner(view.FilterHighlight, UDim.new(0, 7))
+    stroke(view.FilterHighlight, Theme.border, 1, 0.88)
+    create("UIGradient", {
+        Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(204, 212, 209)), Rotation = 90,
+    }, view.FilterHighlight)
+    view.FilterButtons = {}
+    for index, option in ipairs(options) do
+        local button = create("TextButton", {
+            Size = UDim2.new(1 / #options, -2, 1, 0), Position = UDim2.new((index - 1) / #options, 1, 0, 0),
+            BackgroundColor3 = Theme.hover, BackgroundTransparency = 1, BorderSizePixel = 0, AutoButtonColor = false,
+            FontFace = Fonts.Medium, TextSize = 12, TextColor3 = Theme.textMuted, Text = tostring(option), ZIndex = 6,
+        }, segment)
+        corner(button, UDim.new(0, 7))
+        view.FilterButtons[index] = button
+        connect(self, button.Activated, function() self:SetFilter(option) end)
+        connect(self, button.MouseEnter, function()
+            if self.Filter == option then return end
+            TweenService:Create(button, Theme.tweenFast, { BackgroundTransparency = 0.6, TextColor3 = Theme.textPri }):Play()
+        end)
+        connect(self, button.MouseLeave, function()
+            if self.Filter == option then return end
+            TweenService:Create(button, Theme.tweenFast, { BackgroundTransparency = 1, TextColor3 = Theme.textMuted }):Play()
+        end)
     end
 end
 
@@ -569,13 +628,17 @@ local function buildWindow(self)
     })
     view.CountPill = makePillBadge(bar, "0 logged", Theme.textMuted, UDim2.new(1, -8, 0.5, 0), 22, 5)
 
+    local top = headerHeight + barHeight
+    if self.Options.Filter then
+        buildFilter(self, top)
+        top = top + Theme.filterHeight
+    end
     view.Divider = create("Frame", {
-        Size = UDim2.new(1, -20, 0, 1), Position = UDim2.new(0, 10, 0, headerHeight + barHeight),
+        Size = UDim2.new(1, -20, 0, 1), Position = UDim2.new(0, 10, 0, top),
         BackgroundColor3 = Theme.border, BackgroundTransparency = 0.92, BorderSizePixel = 0, ZIndex = 4,
     }, view.Window)
     view.Content = create("Frame", {
-        Position = UDim2.new(0, 0, 0, headerHeight + barHeight + 1),
-        Size = UDim2.new(1, 0, 1, -(headerHeight + barHeight + 1)),
+        Position = UDim2.new(0, 0, 0, top + 1), Size = UDim2.new(1, 0, 1, -(top + 1)),
         BackgroundTransparency = 1, ZIndex = 3,
     }, view.Window)
     view.List = create("ScrollingFrame", {
@@ -598,11 +661,11 @@ local function buildWindow(self)
         Position = UDim2.new(), Size = UDim2.new(1, 0, 0, 34), FontFace = Fonts.Regular, TextSize = 28,
         TextColor3 = Theme.snow, TextTransparency = 0.35, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 4,
     })
-    makeText(view.Empty, "Waiting for Liveboard entries...", {
+    view.EmptyTitle = makeText(view.Empty, "Waiting for Liveboard entries...", {
         Position = UDim2.new(0, 0, 0, 40), Size = UDim2.new(1, 0, 0, 20), FontFace = Fonts.SemiBold, TextSize = 14,
         TextColor3 = Theme.textMuted, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 4,
     })
-    makeText(view.Empty, "New OG brainrots appear here as soon as they are logged", {
+    view.EmptyHint = makeText(view.Empty, "New brainrots appear here as soon as they are logged", {
         Position = UDim2.new(0, 0, 0, 62), Size = UDim2.new(1, 0, 0, 18), TextSize = 12,
         TextColor3 = Theme.textDim, TextXAlignment = Enum.TextXAlignment.Center, TextWrapped = true, ZIndex = 4,
     })
@@ -718,6 +781,7 @@ end
 function Controller:SetMinimized(value, instant)
     self.Minimized = value == true
     self.View.Bar.Visible = not self.Minimized
+    if self.View.FilterRow then self.View.FilterRow.Visible = not self.Minimized end
     self.View.Divider.Visible = not self.Minimized
     self.View.Content.Visible = not self.Minimized
     self.View.Minimize.Text = self.Minimized and "+" or "—"
@@ -748,13 +812,41 @@ function Controller:SetStatus(text, tone, badge)
     setPill(self.View.HeaderPill, badge or StatusBadges[key] or "Status", color)
 end
 
-function Controller:RefreshCount()
-    setPill(self.View.CountPill, self.CardCount .. " logged", self.CardCount > 0 and Theme.textPri or Theme.textMuted)
-    self.View.Empty.Visible = self.CardCount == 0
+-- Selects a filter option; calls Filter.OnChanged(value) unless silent.
+function Controller:SetFilter(value, silent)
+    local spec = self.Options.Filter
+    if self.Destroyed or not spec then return end
+    local options = spec.Options or {}
+    local index = table.find(options, value) or 1
+    local changed = self.Filter ~= options[index]
+    self.Filter = options[index]
+    for current, button in ipairs(self.View.FilterButtons) do
+        local active = current == index
+        button.BackgroundTransparency = 1
+        button.FontFace = active and Fonts.SemiBold or Fonts.Medium
+        TweenService:Create(button, Theme.tweenFast, { TextColor3 = active and Theme.activeTabText or Theme.textMuted }):Play()
+    end
+    TweenService:Create(self.View.FilterHighlight, Theme.tweenSlide, {
+        Position = UDim2.new((index - 1) / #options, 1, 0, 0),
+    }):Play()
+    if changed and not silent and type(spec.OnChanged) == "function" then spec.OnChanged(self.Filter) end
 end
 
--- ui:AddCard({ Name, Mutation, IsLocalServer }, { Send = fn, Target = fn, Duel = fn, Copy = fn, Scan = fn, Blacklist = fn, Track = fn })
--- Returns a card with :SetOwner(userId, label), :SetModelState(state), :SetActionText(name, text),
+function Controller:RefreshCount()
+    local shown, total = 0, self.CardCount
+    for card in pairs(self.Cards) do
+        if card.Shown then shown = shown + 1 end
+    end
+    local text = shown == total and (total .. " logged") or (shown .. " of " .. total)
+    setPill(self.View.CountPill, text, total > 0 and Theme.textPri or Theme.textMuted)
+    self.View.Empty.Visible = shown == 0
+    self.View.EmptyTitle.Text = total == 0 and "Waiting for Liveboard entries..." or "No entries match this filter"
+    self.View.EmptyHint.Text = total == 0 and "New brainrots appear here as soon as they are logged"
+        or ("Switch the filter to see the other " .. total .. (total == 1 and " entry" or " entries"))
+end
+
+-- ui:AddCard({ Name, Rarity, Mutation, IsLocalServer }, { Send = fn, Target = fn, Duel = fn, Copy = fn, Scan = fn, Blacklist = fn, Track = fn })
+-- Returns a card with :SetOwner(userId, label), :SetModelState(state), :SetShown(bool), :SetActionText(name, text),
 -- :ResetActionText(name), :Destroy() and a .Viewport for the brainrot model. Newest cards go on top.
 function Controller:AddCard(data, actions)
     if self.Destroyed then return nil end
@@ -792,15 +884,20 @@ function Controller:AddCard(data, actions)
     })
     local chips = create("Frame", {
         Position = UDim2.new(0, 76, 0, 38), Size = UDim2.new(1, -184, 0, 20), BackgroundTransparency = 1,
+        ClipsDescendants = true,
     }, frame)
     create("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 6),
         SortOrder = Enum.SortOrder.LayoutOrder, VerticalAlignment = Enum.VerticalAlignment.Center,
     }, chips)
+    if data.Rarity then
+        local rarity = tostring(data.Rarity)
+        makeChip(chips, rarity, rarity == "OG" and Theme.gold or rarity == "Secret" and Theme.textPri or Theme.textMuted, 1)
+    end
     local mutation = tostring(data.Mutation or "Normal")
     local mutated = string.lower(mutation) ~= "normal"
-    makeChip(chips, mutation, mutated and Theme.gold or Theme.textMuted, 1)
-    makeChip(chips, data.IsLocalServer and "Server" or "Global", data.IsLocalServer and Theme.success or Theme.info, 2)
+    makeChip(chips, mutation, mutated and Theme.accentText or Theme.textMuted, 2)
+    makeChip(chips, data.IsLocalServer and "Server" or "Global", data.IsLocalServer and Theme.success or Theme.info, 3)
     card.OwnerLabel = makeText(frame, "Unclaimed", {
         Position = UDim2.new(0, 76, 0, 64), Size = UDim2.new(1, -184, 0, 18),
         TextSize = 12, TextColor3 = Theme.danger, TextTruncate = Enum.TextTruncate.AtEnd,
@@ -844,6 +941,7 @@ function Controller:AddCard(data, actions)
         })
     end
 
+    card.Shown = true
     self.Cards[card] = true
     self.CardCount = self.CardCount + 1
     self:RefreshCount()
@@ -1046,7 +1144,8 @@ function Controller:Destroy()
     if UiLib.Active == self then UiLib.Active = nil end
 end
 
--- UiLib.CreateSniper({ Subtitle = "OG Sniper", Status = "Starting...", StatusTone = "warning", OnClose = fn })
+-- UiLib.CreateSniper({ Subtitle = "OG Sniper", Status = "Starting...", StatusTone = "warning", OnClose = fn,
+--     Filter = { Label = "Show", Options = { "All", "Secrets", "OGs" }, Value = "All", OnChanged = fn } })
 function UiLib.CreateSniper(options)
     if UiLib.Active then UiLib.Active:Destroy() end
     local self = setmetatable({
@@ -1065,6 +1164,7 @@ function UiLib.CreateSniper(options)
     buildWindow(self)
     wireWindow(self)
     self:SetStatus(self.Options.Status or "Starting...", self.Options.StatusTone or "warning")
+    if self.Options.Filter then self:SetFilter(self.Options.Filter.Value, true) end
     self:RefreshCount()
     local targetScale = self:UpdateScale(true)
     if not self.Options.Position then
