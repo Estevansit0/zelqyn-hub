@@ -1,4 +1,4 @@
---v16 dual AI · christmas theme · custom background
+--v17 dual AI · christmas theme · custom background · redeem sound
 local cloneref = cloneref or function(object) return object end
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
@@ -57,6 +57,7 @@ local UiLib = {
         backgroundAsset = "rbxassetid://130379359123488",
         backgroundTransparency = 0.94,
         backgroundStrengths = { Low = 0.78, Medium = 0.58, High = 0.38 },
+        soundVolumes = { Low = 0.3, Medium = 0.6, High = 1 },
         logoAsset = "rbxassetid://0",
         snowfall = true,
         desktopWidth = 390,
@@ -709,7 +710,7 @@ local TabData = {
     { "Sender", "Test Sender", 345, 355 },
     { "Buy", "Auto Buy", 390, 400 },
     { "Sell", "Auto Sell", 345, 355 },
-    { "UI", "Interface", 425, 430 },
+    { "UI", "Interface", 655, 662 },
 }
 
 local function viewportSize()
@@ -1454,64 +1455,102 @@ local function buildAutoSell(self)
     self.View.AASellStatus = aaSellStatus
 end
 
-local function buildInterface(self)
-    local page = self.View.Pages[8]
-    local urlCard = makeCard(page, 78, 1)
-    makeText(urlCard, "Background Image", { Size = UDim2.new(1, -110, 0, 32), FontFace = Fonts.SemiBold, TextSize = 13 })
-    makePillBadge(urlCard, "PNG · JPG · WEBP", Theme.textMuted, UDim2.new(1, -10, 0, 16), 18, 4)
+-- Link card for the Interface tab; Enter in the box calls onSubmit(trimmedText).
+local function makeLinkCard(self, page, title, badge, placeholder, value, order, onSubmit)
+    local card = makeCard(page, 78, order)
+    makeText(card, title, { Size = UDim2.new(1, -110, 0, 32), FontFace = Fonts.SemiBold, TextSize = 13 })
+    makePillBadge(card, badge, Theme.textMuted, UDim2.new(1, -10, 0, 16), 18, 4)
     local field = create("Frame", {
         Position = UDim2.new(0, 10, 0, 36), Size = UDim2.new(1, -20, 0, 34),
         BackgroundColor3 = Theme.inputBg, BackgroundTransparency = Theme.inputTransparency,
         BorderSizePixel = 0, ClipsDescendants = true,
-    }, urlCard)
+    }, card)
     corner(field, UDim.new(0, 8))
     local outline = stroke(field, Theme.border, 1, 0.9)
     local box = create("TextBox", {
         Position = UDim2.new(0, 10, 0, 0), Size = UDim2.new(1, -20, 1, 0),
         BackgroundTransparency = 1, BorderSizePixel = 0, ClearTextOnFocus = false, MultiLine = false,
         FontFace = Fonts.Medium, TextSize = 12, TextColor3 = Theme.textPri,
-        PlaceholderText = "https://example.com/background.png", PlaceholderColor3 = Theme.textDim,
-        TextXAlignment = Enum.TextXAlignment.Left, Text = tostring(self.State.BackgroundUrl or ""),
+        PlaceholderText = placeholder, PlaceholderColor3 = Theme.textDim,
+        TextXAlignment = Enum.TextXAlignment.Left, Text = tostring(value or ""),
     }, field)
     clipInput(self, box)
     focusOutline(self, box, outline, 0.9)
-    hover(self, urlCard, box)
-    self.View.BackgroundInput = box
-    local function apply()
-        emit(self, "ApplyBackground", box.Text:match("^%s*(.-)%s*$"))
-    end
+    hover(self, card, box)
     connect(self, box.FocusLost, function(enterPressed)
-        if enterPressed then apply() end
+        if enterPressed then onSubmit(box.Text:match("^%s*(.-)%s*$")) end
     end)
+    return box
+end
+
+local function makeLevelCard(self, page, title, value, order, callbackName)
+    local card = makeCard(page, 44, order)
+    makeText(card, title, { Size = UDim2.new(1, -210, 1, 0) })
+    local levels
+    levels = makeSegmented(self, card, { "Low", "Medium", "High" }, function(option)
+        if levels.Value == option then return end
+        levels:Set(option)
+        emit(self, callbackName, option)
+    end)
+    levels.Frame.AnchorPoint = Vector2.new(1, 0.5)
+    levels.Frame.Position = UDim2.new(1, -8, 0.5, 0)
+    levels.Frame.Size = UDim2.new(0, 186, 0, 30)
+    levels:Set(value or "Medium", true)
+    return levels
+end
+
+local function buildInterface(self)
+    local page = self.View.Pages[8]
+    local function applyBackground(url) emit(self, "ApplyBackground", url) end
+    local backgroundBox = makeLinkCard(self, page, "Background Image", "PNG · JPG · WEBP",
+        "https://example.com/background.png", self.State.BackgroundUrl, 1, applyBackground)
+    self.View.BackgroundInput = backgroundBox
 
     local actions = create("Frame", { Size = UDim2.new(1, 0, 0, 40), BackgroundTransparency = 1, LayoutOrder = 2 }, page)
     local applyButton = makeButton(self, actions, {
         Text = "Apply Background", Bold = true, Primary = true,
         Size = UDim2.new(0.5, -3, 0, 40), Position = UDim2.new(0, 0, 0, 0),
     })
-    connect(self, applyButton.Button.Activated, apply)
+    connect(self, applyButton.Button.Activated, function()
+        applyBackground(backgroundBox.Text:match("^%s*(.-)%s*$"))
+    end)
     makeButton(self, actions, {
         Text = "Reset", Callback = "ResetBackground", Bold = true, TextColor = Theme.textMuted,
         Size = UDim2.new(0.5, -3, 0, 40), Position = UDim2.new(0.5, 3, 0, 0),
     })
 
-    local strengthCard = makeCard(page, 44, 3)
-    makeText(strengthCard, "Visibility", { Size = UDim2.new(1, -210, 1, 0) })
-    local strength
-    strength = makeSegmented(self, strengthCard, { "Low", "Medium", "High" }, function(option)
-        if strength.Value == option then return end
-        strength:Set(option)
-        emit(self, "BackgroundStrengthChanged", option)
-    end)
-    strength.Frame.AnchorPoint = Vector2.new(1, 0.5)
-    strength.Frame.Position = UDim2.new(1, -8, 0.5, 0)
-    strength.Frame.Size = UDim2.new(0, 186, 0, 30)
-    strength:Set(self.State.BackgroundStrength or "Medium", true)
-    self.View.BackgroundStrength = strength
+    self.View.BackgroundStrength = makeLevelCard(self, page, "Visibility", self.State.BackgroundStrength, 3, "BackgroundStrengthChanged")
 
     makeParagraph(page, "Custom Background", "Paste a direct PNG, JPG or WebP link (GIFs are not supported). It downloads once and stays saved on your device.", 76, 4)
     local _, backgroundStatus = makeStatusCard(page, "Using the default background", 5)
     self.View.BackgroundStatus = backgroundStatus
+
+    local function applySound(url) emit(self, "ApplySound", url) end
+    local soundBox = makeLinkCard(self, page, "Redeem Sound", "MP3 · OGG · WAV",
+        "https://example.com/sound.mp3", self.State.SoundUrl, 6, applySound)
+    self.View.SoundInput = soundBox
+
+    local soundActions = create("Frame", { Size = UDim2.new(1, 0, 0, 40), BackgroundTransparency = 1, LayoutOrder = 7 }, page)
+    local applySoundButton = makeButton(self, soundActions, {
+        Text = "Apply Sound", Bold = true, Primary = true,
+        Size = UDim2.new(0.5, -3, 0, 40), Position = UDim2.new(0, 0, 0, 0),
+    })
+    connect(self, applySoundButton.Button.Activated, function()
+        applySound(soundBox.Text:match("^%s*(.-)%s*$"))
+    end)
+    makeButton(self, soundActions, {
+        Text = "Test", Callback = "TestSound", Bold = true,
+        Size = UDim2.new(0.25, -4, 0, 40), Position = UDim2.new(0.5, 3, 0, 0),
+    })
+    makeButton(self, soundActions, {
+        Text = "Reset", Callback = "ResetSound", Bold = true, TextColor = Theme.textMuted,
+        Size = UDim2.new(0.25, -3, 0, 40), Position = UDim2.new(0.75, 3, 0, 0),
+    })
+
+    self.View.SoundVolume = makeLevelCard(self, page, "Volume", self.State.SoundVolume, 8, "SoundVolumeChanged")
+
+    local _, soundStatus = makeStatusCard(page, "No sound set · plays only on redeemed codes", 9)
+    self.View.SoundStatus = soundStatus
 end
 
 function Controller:SetLastMessage(text)
@@ -1807,18 +1846,64 @@ function Controller:SetBackground(image, strength)
     end
 end
 
-local BackgroundTones = { success = "success", warning = "warning", error = "danger", muted = "textMuted" }
+local StatusTones = { success = "success", warning = "warning", error = "danger", muted = "textMuted" }
 
 -- tone: "success", "warning", "error" or "muted"
 function Controller:SetBackgroundStatus(text, tone)
     if self.Destroyed or not self.View.BackgroundStatus then return end
     self.View.BackgroundStatus.Text = tostring(text or "")
-    self.View.BackgroundStatus.TextColor3 = Theme[BackgroundTones[tone] or "textMuted"]
+    self.View.BackgroundStatus.TextColor3 = Theme[StatusTones[tone] or "textMuted"]
 end
 
 function Controller:SetBackgroundUrl(url)
     if self.Destroyed or not self.View.BackgroundInput then return end
     self.View.BackgroundInput.Text = tostring(url or "")
+end
+
+-- ui:SetRedeemSound("rbxasset://...", "Medium") loads the sound (e.g. from getcustomasset) and returns it; nil removes it.
+function Controller:SetRedeemSound(soundId, volume)
+    if self.Destroyed or not self.View.Gui then return nil end
+    local sound = self.View.RedeemSound
+    if type(soundId) ~= "string" or soundId == "" then
+        if sound then sound:Destroy() end
+        self.View.RedeemSound = nil
+        return nil
+    end
+    if not sound or sound.Parent == nil then
+        sound = create("Sound", { Name = "RedeemSound" }, self.View.Gui)
+        self.View.RedeemSound = sound
+    end
+    sound.Volume = Theme.soundVolumes[volume] or Theme.soundVolumes.Medium
+    if sound.SoundId ~= soundId then
+        sound:Stop()
+        sound.SoundId = soundId
+    end
+    return sound
+end
+
+function Controller:SetRedeemSoundVolume(volume)
+    local sound = self.View.RedeemSound
+    if self.Destroyed or not sound then return end
+    sound.Volume = Theme.soundVolumes[volume] or Theme.soundVolumes.Medium
+end
+
+function Controller:PlayRedeemSound()
+    local sound = self.View.RedeemSound
+    if self.Destroyed or not sound or not sound.IsLoaded then return false end
+    sound.TimePosition = 0
+    sound:Play()
+    return true
+end
+
+function Controller:SetSoundStatus(text, tone)
+    if self.Destroyed or not self.View.SoundStatus then return end
+    self.View.SoundStatus.Text = tostring(text or "")
+    self.View.SoundStatus.TextColor3 = Theme[StatusTones[tone] or "textMuted"]
+end
+
+function Controller:SetSoundUrl(url)
+    if self.Destroyed or not self.View.SoundInput then return end
+    self.View.SoundInput.Text = tostring(url or "")
 end
 
 function Controller:Log(entry)
