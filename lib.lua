@@ -1,4 +1,4 @@
---v18 dual AI · christmas theme · reveal net · local sender · response timing
+--v19 dual AI · christmas theme · reveal net · sender preview · response timing
 local cloneref = cloneref or function(object) return object end
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
@@ -1437,7 +1437,7 @@ local function buildSender(self)
     })
     local check = makeButton(self, page, { Text = "Flag Check · Measure Response", Bold = true, Order = 5 })
     connect(self, check.Button.Activated, function()
-        emit(self, "FlagCheckCodeChanged", self.Controls.FlagCheckCode.Box.Text)
+        emit(self, "FlagCheckCodeChanged", self.Controls.FlagCheckCode.TextBox.Text)
         emit(self, "FlagCheck")
     end)
     makeParagraph(page, "Response Timing", "Turn Listen off in AI first. Sends one real redemption and measures the server reply. A code with stock may be claimed. Slow replies alone do not confirm an account flag.", 108, 6)
