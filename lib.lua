@@ -1,4 +1,4 @@
---v17 dual AI · christmas theme · custom background · redeem sound
+--v18 dual AI · christmas theme · reveal net · local sender · response timing
 local cloneref = cloneref or function(object) return object end
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
@@ -705,9 +705,9 @@ end
 local TabData = {
     { "Home", "Code Redeemer", 650, 660 },
     { "Rules", "Trigger Matrix", 330, 340 },
-    { "AI", "AI Engine", 520, 530 },
+    { "AI", "AI Engine", 610, 620 },
     { "Log", "Activity Log", 450, 470 },
-    { "Sender", "Test Sender", 345, 355 },
+    { "Sender", "Test Sender", 650, 660 },
     { "Buy", "Auto Buy", 390, 400 },
     { "Sell", "Auto Sell", 345, 355 },
     { "UI", "Interface", 655, 662 },
@@ -1346,21 +1346,27 @@ end
 
 local function buildAI(self)
     local page = self.View.Pages[3]
+    self.Controls.Listening = makeToggle(self, page, {
+        Text = "Listen to Announcements", Value = self.State.Listening ~= false, Order = 1, Callback = "ListeningChanged",
+    })
+    self.Controls.RevealNet = makeToggle(self, page, {
+        Text = "Reveal Net", Value = self.State.RevealNet ~= false, Order = 2, Callback = "RevealNetChanged",
+    })
     self.Controls.AIAnswers = makeToggle(self, page, {
-        Text = "Use AI Answers", Value = self.State.AIAnswers, Order = 1, Callback = "AIAnswersChanged",
+        Text = "Use AI Answers", Value = self.State.AIAnswers, Order = 3, Callback = "AIAnswersChanged",
     })
     self.Controls.AITriggers = makeInput(self, page, {
         Text = "AI Triggers", Value = table.concat(self.State.AITriggers or {}, ", "),
         Placeholder = "Question, riddle", Stacked = true, Align = Enum.TextXAlignment.Left,
-        Order = 2, Callback = "AITriggersChanged",
+        Order = 4, Callback = "AITriggersChanged",
     })
     self.Controls.MinCharacters = makeInput(self, page, {
-        Text = "Min Characters", Value = self.State.MinCharacters, Order = 3, Callback = "MinCharactersChanged",
+        Text = "Min Characters", Value = self.State.MinCharacters, Order = 5, Callback = "MinCharactersChanged",
     })
     self.Controls.MinSpaces = makeInput(self, page, {
-        Text = "Min Spaces", Value = self.State.MinSpaces, Order = 4, Callback = "MinSpacesChanged",
+        Text = "Min Spaces", Value = self.State.MinSpaces, Order = 6, Callback = "MinSpacesChanged",
     })
-    makeParagraph(page, "Dual AI Engine", "Gemini Flash Lite + GPT-oss/Cerebras run together. Each distinct answer is redeemed as soon as it arrives; matching answers are sent once.", 96, 5)
+    makeParagraph(page, "Dual AI + Reveal Net", "Gemini + GPT race each riddle. Reveal Net also reads revealed codes and recent messages. Auto Enter Code controls automatic claims; claimed or sold-out codes are skipped.", 108, 7)
 end
 
 local function buildLog(self)
@@ -1421,9 +1427,25 @@ local function buildSender(self)
         local ok, status = emit(self, "SendNotification", message)
         self:SetSenderStatus(status, ok)
     end)
-    local _, senderStatus = makeStatusCard(page, self.State.NotificationReady and "Remote ready" or "Remote unavailable", 3)
-    senderStatus.TextColor3 = self.State.NotificationReady and Theme.success or Theme.textMuted
+    local _, senderStatus = makeStatusCard(page, "Local test feed ready", 3)
+    senderStatus.TextColor3 = Theme.success
     self.View.SenderStatus = senderStatus
+    self.Controls.FlagCheckCode = makeInput(self, page, {
+        Text = "Flag Check · Registered Code", Value = self.State.FlagCheckCode or "TIMCHEESE5",
+        Placeholder = "A known valid or sold-out code", Stacked = true, Align = Enum.TextXAlignment.Left,
+        Order = 4, Callback = "FlagCheckCodeChanged",
+    })
+    local check = makeButton(self, page, { Text = "Flag Check · Measure Response", Bold = true, Order = 5 })
+    connect(self, check.Button.Activated, function()
+        emit(self, "FlagCheckCodeChanged", self.Controls.FlagCheckCode.Box.Text)
+        emit(self, "FlagCheck")
+    end)
+    makeParagraph(page, "Response Timing", "Turn Listen off in AI first. Sends one real redemption and measures the server reply. A code with stock may be claimed. Slow replies alone do not confirm an account flag.", 108, 6)
+    local statusCard, timingStatus = makeStatusCard(page, "Not measured", 7)
+    statusCard.Size = UDim2.new(1, 0, 0, 60)
+    timingStatus.TextWrapped = true
+    timingStatus.TextTruncate = Enum.TextTruncate.None
+    self.View.FlagCheckStatus = timingStatus
 end
 
 local function buildAutoBuy(self)
@@ -1818,6 +1840,14 @@ function Controller:SetOptimizerApplied(applied)
     control.RestColor = applied and Theme.bg3 or Theme.bg2
     control.Button.TextColor3 = control.RestTextColor
     control.Frame.BackgroundColor3 = control.RestColor
+end
+
+function Controller:SetListening(enabled)
+    if self.Controls.Listening then self.Controls.Listening:Set(enabled, false) end
+end
+
+function Controller:SetFlagCheckStatus(text)
+    if self.View.FlagCheckStatus then self.View.FlagCheckStatus.Text = tostring(text or "Not measured") end
 end
 
 function Controller:SetSenderStatus(text, successful)
