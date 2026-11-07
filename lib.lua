@@ -1430,22 +1430,6 @@ local function buildSender(self)
     local _, senderStatus = makeStatusCard(page, "Local test feed ready", 3)
     senderStatus.TextColor3 = Theme.success
     self.View.SenderStatus = senderStatus
-    self.Controls.FlagCheckCode = makeInput(self, page, {
-        Text = "Flag Check · Registered Code", Value = self.State.FlagCheckCode or "TIMCHEESE5",
-        Placeholder = "A known valid or sold-out code", Stacked = true, Align = Enum.TextXAlignment.Left,
-        Order = 4, Callback = "FlagCheckCodeChanged",
-    })
-    local check = makeButton(self, page, { Text = "Flag Check · Measure Response", Bold = true, Order = 5 })
-    connect(self, check.Button.Activated, function()
-        emit(self, "FlagCheckCodeChanged", self.Controls.FlagCheckCode.TextBox.Text)
-        emit(self, "FlagCheck")
-    end)
-    makeParagraph(page, "Response Timing", "Turn Listen off in AI first. Sends one real redemption and measures the server reply. A code with stock may be claimed. Slow replies alone do not confirm an account flag.", 108, 6)
-    local statusCard, timingStatus = makeStatusCard(page, "Not measured", 7)
-    statusCard.Size = UDim2.new(1, 0, 0, 60)
-    timingStatus.TextWrapped = true
-    timingStatus.TextTruncate = Enum.TextTruncate.None
-    self.View.FlagCheckStatus = timingStatus
 end
 
 local function buildAutoBuy(self)
@@ -1844,10 +1828,6 @@ end
 
 function Controller:SetListening(enabled)
     if self.Controls.Listening then self.Controls.Listening:Set(enabled, false) end
-end
-
-function Controller:SetFlagCheckStatus(text)
-    if self.View.FlagCheckStatus then self.View.FlagCheckStatus.Text = tostring(text or "Not measured") end
 end
 
 function Controller:SetSenderStatus(text, successful)
