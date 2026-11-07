@@ -705,9 +705,9 @@ end
 local TabData = {
     { "Home", "Code Redeemer", 650, 660 },
     { "Rules", "Trigger Matrix", 330, 340 },
-    { "AI", "AI Engine", 610, 620 },
+    { "AI", "AI Engine", 550, 545 },
     { "Log", "Activity Log", 450, 470 },
-    { "Sender", "Test Sender", 650, 660 },
+    { "Sender", "Test Sender", 340, 345 },
     { "Buy", "Auto Buy", 390, 400 },
     { "Sell", "Auto Sell", 345, 355 },
     { "UI", "Interface", 655, 662 },
@@ -1366,7 +1366,7 @@ local function buildAI(self)
     self.Controls.MinSpaces = makeInput(self, page, {
         Text = "Min Spaces", Value = self.State.MinSpaces, Order = 6, Callback = "MinSpacesChanged",
     })
-    makeParagraph(page, "Dual AI + Reveal Net", "Gemini + GPT race each riddle. Reveal Net also reads revealed codes and recent messages. Auto Enter Code controls automatic claims; claimed or sold-out codes are skipped.", 108, 7)
+    makeParagraph(page, "Dual AI + Reveal Net", "Gemini + GPT race each riddle. Reveal Net also reads revealed codes and recent messages. Auto Enter Code controls automatic claims; claimed or sold-out codes are skipped.", self.VerticalLayout and 84 or 96, 7)
 end
 
 local function buildLog(self)
