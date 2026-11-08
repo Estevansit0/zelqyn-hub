@@ -1,3 +1,4 @@
+--v2.8.2
 --!nonstrict
 local getService = setmetatable({}, {
 	__index = function(self, serviceName)
@@ -26,7 +27,7 @@ local IsMobileDevice = UserInputService.TouchEnabled and not UserInputService.Mo
  
 local NullUI = {}
 NullUI.__index = NullUI
-NullUI.Version = "2.8.1"
+NullUI.Version = "2.8.2"
 NullUI.Flags = {}
 NullUI._Windows = {}
 NullUI._Unloaded = false
@@ -2097,11 +2098,45 @@ Window.__index = Window
  
 local Tab = {}
 Tab.__index = Tab
- 
+
+-- Remembers each resizable window's size in NullUI/WindowSizes/<key>.json (key = SizeKey or Title).
+local WindowSizeStore = { Folder = "NullUI/WindowSizes" }
+
+function WindowSizeStore.Path(key)
+	local safe = tostring(key or "Window"):gsub("[^%w_%- ]", "_"):gsub("^%s+", ""):gsub("%s+$", "")
+	if safe == "" then safe = "Window" end
+	return WindowSizeStore.Folder .. "/" .. safe .. ".json"
+end
+
+function WindowSizeStore.Load(key)
+	if not (fn_isfile and fn_readfile) then return nil end
+	local ok, data = pcall(function()
+		local path = WindowSizeStore.Path(key)
+		if not fn_isfile(path) then return nil end
+		return HttpService:JSONDecode(fn_readfile(path))
+	end)
+	if not ok or type(data) ~= "table" then return nil end
+	local w, h = tonumber(data.Width), tonumber(data.Height)
+	if not (w and h) or w <= 0 or h <= 0 then return nil end
+	return Vector2.new(w, h)
+end
+
+function WindowSizeStore.Save(key, size)
+	if not (fn_writefile and fn_isfolder and fn_makefolder) then return end
+	pcall(function()
+		if not fn_isfolder("NullUI") then fn_makefolder("NullUI") end
+		if not fn_isfolder(WindowSizeStore.Folder) then fn_makefolder(WindowSizeStore.Folder) end
+		fn_writefile(WindowSizeStore.Path(key), HttpService:JSONEncode({
+			Width = size.X.Offset,
+			Height = size.Y.Offset,
+		}))
+	end)
+end
+
 function NullUI:CreateWindow(opts)
 	opts = opts or {}
 	local size = opts.Size or UDim2.fromOffset(605, 405)
- 
+
 	if IsMobileDevice then
 		-- Landscape layout: use the available height instead of flattening the window.
 		local vp = ViewportSize()
@@ -2110,6 +2145,31 @@ function NullUI:CreateWindow(opts)
 			math.floor((vp.X / s) * 0.64),
 			math.floor((vp.Y / s) * 0.96)
 		)
+	end
+
+	-- No mobile o minimo nao pode ser maior que a janela ja clampada, senao um
+	-- resize devolve a janela pro tamanho cortado.
+	local baseMinSize = opts.MinSize or Vector2.new(420, 300)
+	local resizeMinSize = Vector2.new(
+		math.min(baseMinSize.X, size.X.Offset),
+		math.min(baseMinSize.Y, size.Y.Offset)
+	)
+
+	local sizeKey = opts.SizeKey or opts.Title or "Window"
+	local saveSize = opts.Resizable ~= false and opts.SaveSize ~= false
+	if saveSize then
+		local saved = WindowSizeStore.Load(sizeKey)
+		if saved then
+			-- Clamp to the current screen: the file may come from a bigger monitor/resolution.
+			local vp = ViewportSize()
+			local s = GetUIScale()
+			local maxW = math.max(math.floor((vp.X / s) * 0.96), 100)
+			local maxH = math.max(math.floor((vp.Y / s) * (IsMobileDevice and 0.96 or 0.9)), 100)
+			size = UDim2.fromOffset(
+				math.round(SafeClamp(saved.X, math.min(resizeMinSize.X, maxW), maxW)),
+				math.round(SafeClamp(saved.Y, math.min(resizeMinSize.Y, maxH), maxH))
+			)
+		end
 	end
 	local margin = NullUI.Theme.Margin
  
@@ -2358,17 +2418,13 @@ function NullUI:CreateWindow(opts)
  
 	if opts.Resizable ~= false then
 		SetupResize(main, resizeHandle, jan, {
-			-- No mobile o minimo nao pode ser maior que a janela ja clampada, senao um
-			-- resize devolve a janela pro tamanho cortado.
-			MinSize = Vector2.new(
-				math.min((opts.MinSize or Vector2.new(420, 300)).X, size.X.Offset),
-				math.min((opts.MinSize or Vector2.new(420, 300)).Y, size.Y.Offset)
-			),
+			MinSize = resizeMinSize,
 			OnResize = function(newSize, finished)
 				if self._fullscreen then return end
 				if finished then
 					self._normalSize = newSize
 					self._sizeBeforeMinimize = newSize
+					if saveSize then WindowSizeStore.Save(sizeKey, newSize) end
 				end
 			end,
 		})
