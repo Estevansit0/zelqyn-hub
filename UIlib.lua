@@ -2343,6 +2343,7 @@ function NullUI:CreateWindow(opts)
 		_state          = "open",
 		_busy           = false,
 		_destroyed      = false,
+		Destroyed       = false, -- public mirror of _destroyed: lets scripts end loops with `while not Window.Destroyed do`
 		_searchIndex    = {},
 		_useBlur        = opts.UseBlur ~= false,
 		_defaultTabName = opts.DefaultTab,
@@ -2511,7 +2512,8 @@ end
 function Window:Destroy()
 	if self._destroyed then return end
 	self._destroyed = true
- 
+	self.Destroyed = true
+
 	local idx = table.find(NullUI._Windows, self)
 	if idx then table.remove(NullUI._Windows, idx) end
  
@@ -13618,6 +13620,7 @@ end
 local function DestroyAllWindowJanitors()
 	for _, win in ipairs(NullUI._Windows) do
 		win._destroyed = true
+		win.Destroyed = true
 		if win._janitor then win._janitor:Destroy() end
 	end
 	table.clear(NullUI._Windows)
