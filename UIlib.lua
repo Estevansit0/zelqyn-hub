@@ -1,13 +1,24 @@
 --!nonstrict
-local TweenService      = game:GetService("TweenService")
-local Players           = game:GetService("Players")
-local UserInputService  = game:GetService("UserInputService")
-local RunService        = game:GetService("RunService")
-local TextService       = game:GetService("TextService")
-local Lighting          = game:GetService("Lighting")
-local HttpService       = game:GetService("HttpService")
-local GuiService        = game:GetService("GuiService")
- 
+local getService = setmetatable({}, {
+	__index = function(self, serviceName)
+		local service = cloneref(game:GetService(serviceName))
+		rawset(self, serviceName, service)
+		return service
+	end
+})
+
+local TweenService        = getService.TweenService
+local Players             = getService.Players
+local UserInputService    = getService.UserInputService
+local RunService          = getService.RunService
+local TextService         = getService.TextService
+local Lighting            = getService.Lighting
+local HttpService         = getService.HttpService
+local GuiService          = getService.GuiService
+local Stats               = getService.Stats
+local LocalizationService = getService.LocalizationService
+local LogService          = getService.LogService
+
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui   = LocalPlayer:WaitForChild("PlayerGui")
  
@@ -18,6 +29,7 @@ NullUI.__index = NullUI
 NullUI.Version = "2.8.1"
 NullUI.Flags = {}
 NullUI._Windows = {}
+NullUI._Unloaded = false
  
 local function GetGlobalTable()
 	local ok, g = pcall(function()
@@ -7926,7 +7938,10 @@ end
  
 local function RegisterFlag(opts, api, kind)
 	if opts.Flag then
-		NullUI.Flags[opts.Flag] = api
+		-- Once unloaded, the old instance must never hand flags back to stale scripts.
+		if not NullUI._Unloaded then
+			NullUI.Flags[opts.Flag] = api
+		end
 		api.Flag = opts.Flag
 		api.Kind = kind
 		api.Label = opts.Text or opts.Label or opts.Flag
@@ -9402,7 +9417,6 @@ end
  
 function Tab:AddSystemInfoGrid(opts)
 	opts = opts or {}
-	local Stats = game:GetService("Stats")
 	local LocalPlayer = Players.LocalPlayer
  
 	local runCount = BumpRunCount()
@@ -9457,7 +9471,7 @@ function Tab:AddSystemInfoGrid(opts)
  
 	task.spawn(function()
 		local ok, region = pcall(function()
-			return game:GetService("LocalizationService"):GetCountryRegionForPlayerAsync(LocalPlayer)
+			return LocalizationService:GetCountryRegionForPlayerAsync(LocalPlayer)
 		end)
 		if ok and region and alive then grid:SetValue("Server Region", region) end
 	end)
@@ -11789,7 +11803,6 @@ function Tab:AddConsole(opts)
 	clearBtn.MouseButton1Click:Connect(clearLogs)
  
 	if opts.AutoCapture ~= false then
-		local LogService = game:GetService("LogService")
 		jan:Add(LogService.MessageOut:Connect(addLog))
 	end
  
@@ -13609,20 +13622,29 @@ local function DestroyAllWindowJanitors()
 	end
 	table.clear(NullUI._Windows)
 end
- 
+
+-- Empties the flag registry so scripts still holding this (old) instance read nil:
+-- `Lib:ListUIElements().Flag["x"]` becomes nil and `.Value` errors, killing stale loops.
+local function ReleaseFlags()
+	NullUI._Unloaded = true
+	table.clear(NullUI.Flags)
+end
+
 NullUI._Root.Destroying:Connect(function()
 	AcrylicShuttingDown = true
 	DestroyAllWindowJanitors()
 	DestroyAllAcrylicControllers()
 	LibJanitor:Destroy()
+	ReleaseFlags()
 end)
- 
+
 function NullUI:Unload()
 	CloseAnyOpenPopup()
 	AcrylicShuttingDown = true
 	DestroyAllWindowJanitors()
 	DestroyAllAcrylicControllers()
 	LibJanitor:Destroy()
+	ReleaseFlags()
 	if NullUI._Root then NullUI._Root:Destroy() end
 end
  
