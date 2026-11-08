@@ -1,4 +1,4 @@
---v2.8.2
+--v2.8.3
 --!nonstrict
 local getService = setmetatable({}, {
 	__index = function(self, serviceName)
@@ -27,7 +27,7 @@ local IsMobileDevice = UserInputService.TouchEnabled and not UserInputService.Mo
  
 local NullUI = {}
 NullUI.__index = NullUI
-NullUI.Version = "2.8.2"
+NullUI.Version = "2.8.3"
 NullUI.Flags = {}
 NullUI._Windows = {}
 NullUI._Unloaded = false
@@ -10447,7 +10447,25 @@ function Tab:AddDropdown(opts)
 	local hasDesc = opts.Description and opts.Description ~= ""
 	local height = hasDesc and 56 or 44
 	local jan = self._janitor
- 
+
+	-- Options may contain section headers: { Divider = "Coins" } (titled) or { Divider = true } (plain line).
+	-- They are only drawn in the popup; they can never be selected or returned as a value.
+	local DIVIDER_ROW_H, DIVIDER_LINE_H = 24, 10
+	local function isDivider(o)
+		return type(o) == "table" and o.Divider ~= nil and o.Divider ~= false
+	end
+	local function dividerText(o)
+		local t = o.Divider
+		if type(t) == "string" and t ~= "" then return t end
+		return nil
+	end
+	local function firstOption()
+		for _, o in ipairs(options) do
+			if not isDivider(o) then return o end
+		end
+		return nil
+	end
+
 	local selected
 	if isMulti then
 		selected = {}
@@ -10455,7 +10473,7 @@ function Tab:AddDropdown(opts)
 			for _, v in ipairs(opts.Default) do selected[v] = true end
 		end
 	else
-		selected = opts.Default or options[1]
+		selected = opts.Default or firstOption()
 	end
  
 	local signal = MakeSignal()
@@ -10467,7 +10485,7 @@ function Tab:AddDropdown(opts)
 	local function getSelectedList()
 		local list = {}
 		for _, name in ipairs(options) do
-			if isMulti and selected[name] then table.insert(list, name) end
+			if isMulti and not isDivider(name) and selected[name] then table.insert(list, name) end
 		end
 		return list
 	end
@@ -10575,13 +10593,25 @@ function Tab:AddDropdown(opts)
 		local mainWindow = self._window and self._window._gui or root
  
 		local rowH, padV = 30, 12
-		local contentH = #options * rowH + math.max(#options - 1, 0) * 2 + padV
+		local contentH = math.max(#options - 1, 0) * 2 + padV
+		for _, o in ipairs(options) do
+			if isDivider(o) then
+				contentH = contentH + (dividerText(o) and DIVIDER_ROW_H or DIVIDER_LINE_H)
+			else
+				contentH = contentH + rowH
+			end
+		end
 		local targetHeight = math.min(contentH, 220, math.max(1, (ViewportSize().Y - 16) / GetUIScale()))
- 
+
 		local popupW = 140
 		for _, name in ipairs(options) do
-			local w = MeasureText(tostring(name), 13, 1000)
-			popupW = math.max(popupW, w + 66)
+			if isDivider(name) then
+				local text = dividerText(name)
+				if text then popupW = math.max(popupW, MeasureText(text, 11, 1000) + 70) end
+			else
+				local w = MeasureText(tostring(name), 13, 1000)
+				popupW = math.max(popupW, w + 66)
+			end
 		end
 		popupW = math.min(popupW, ViewportSize().X / GetUIScale() - 24)
  
@@ -10632,7 +10662,55 @@ function Tab:AddDropdown(opts)
 			Add = function(_, conn) scrollConn = conn end,
 		})
  
+		local function addDividerLine(parent, anchorX, position, size)
+			local ln = Instance.new("Frame")
+			ln.BorderSizePixel = 0
+			ln.BackgroundColor3 = Color3.new(1, 1, 1)
+			ln.BackgroundTransparency = 0.88
+			ln.AnchorPoint = Vector2.new(anchorX, 0.5)
+			ln.Position = position
+			ln.Size = size
+			ln.ZIndex = Z.Popup + 3
+			ln.Parent = parent
+		end
+
 		for i, optionName in ipairs(options) do
+			if isDivider(optionName) then
+				local text = dividerText(optionName)
+				local row = Instance.new("Frame")
+				row.Name = "Divider"
+				row.BackgroundTransparency = 1
+				row.Size = UDim2.new(1, 0, 0, text and DIVIDER_ROW_H or DIVIDER_LINE_H)
+				row.LayoutOrder = i
+				row.ZIndex = Z.Popup + 2
+				row.Parent = optionsHolder
+
+				if text then
+					local textW = MeasureText(text, 11, 1000)
+					local divLabel = Instance.new("TextLabel")
+					divLabel.BackgroundTransparency = 1
+					divLabel.FontFace = NullUI.Theme.Font
+					divLabel.Text = text
+					divLabel.TextColor3 = NullUI.Theme.TextDim
+					divLabel.TextTransparency = 0.2
+					divLabel.TextSize = 11
+					divLabel.TextTruncate = Enum.TextTruncate.AtEnd
+					divLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+					divLabel.Position = UDim2.fromScale(0.5, 0.5)
+					divLabel.Size = UDim2.new(0, textW + 4, 1, 0)
+					divLabel.ZIndex = Z.Popup + 3
+					divLabel.Parent = row
+
+					-- "── Coins ──": a line on each side, leaving 8px of air around the label.
+					local sideW = UDim2.new(0.5, -(math.ceil(textW / 2) + 2 + 8 + 6), 0, 1)
+					addDividerLine(row, 0, UDim2.new(0, 6, 0.5, 0), sideW)
+					addDividerLine(row, 1, UDim2.new(1, -6, 0.5, 0), sideW)
+				else
+					addDividerLine(row, 0.5, UDim2.fromScale(0.5, 0.5), UDim2.new(1, -12, 0, 1))
+				end
+				continue
+			end
+
 			local optBtn = Instance.new("TextButton")
 			optBtn.Text = ""
 			optBtn.AutoButtonColor = false
