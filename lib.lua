@@ -1,4 +1,4 @@
---v19 dual AI · christmas theme · reveal net · sender preview · response timing
+--v20 christmas lights · candy cane toggles · snow drifts · reveal net needs AI · dual AI
 local cloneref = cloneref or function(object) return object end
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
@@ -60,6 +60,15 @@ local UiLib = {
         soundVolumes = { Low = 0.3, Medium = 0.6, High = 1 },
         logoAsset = "rbxassetid://0",
         snowfall = true,
+        snowDrift = true,
+        christmasLights = true,
+        lightColors = {
+            Color3.fromRGB(255, 70, 82), Color3.fromRGB(255, 204, 90),
+            Color3.fromRGB(80, 220, 124), Color3.fromRGB(104, 172, 255),
+        },
+        candyToggles = true,
+        candyWhite = Color3.fromRGB(255, 232, 236),
+        tinsel = true,
         desktopWidth = 390,
         desktopHeight = 620,
         mobileWidth = 346,
@@ -198,6 +207,17 @@ local function shine(self, target, host)
     end
     connect(self, target.MouseEnter, play)
     return play
+end
+
+-- Hard-edged red/white bands: a candy cane when the gradient is rotated.
+local function candyStripes(stripes)
+    local points = {}
+    for index = 0, stripes - 1 do
+        local color = index % 2 == 0 and Theme.accent or Theme.candyWhite
+        points[#points + 1] = ColorSequenceKeypoint.new(index == 0 and 0 or index / stripes + 0.001, color)
+        points[#points + 1] = ColorSequenceKeypoint.new((index + 1) / stripes, color)
+    end
+    return ColorSequence.new(points)
 end
 
 local function makeCard(parent, height, order)
@@ -385,7 +405,9 @@ end
 local function setToggle(control, enabled, instant)
     control.Value = enabled == true
     local on = control.Value
-    local trackGoal = { BackgroundColor3 = on and Theme.toggleOn or Theme.toggleOff }
+    -- Candy toggles show their stripes on a white track (the gradient tints the track color).
+    local trackGoal = { BackgroundColor3 = on and (control.Candy and Color3.new(1, 1, 1) or Theme.toggleOn) or Theme.toggleOff }
+    if control.Candy and (on or instant) then control.Candy.Enabled = on end
     local knobGoal = {
         Position = on
             and UDim2.new(0, Theme.toggleW - Theme.knobSz - 3, 0.5, -Theme.knobSz / 2)
@@ -403,7 +425,14 @@ local function setToggle(control, enabled, instant)
         control.TrackStroke.Transparency = trackStrokeGoal.Transparency
         control.Outline.Color, control.Outline.Transparency = outlineGoal.Color, outlineGoal.Transparency
     else
-        TweenService:Create(control.Track, Theme.tweenFast, trackGoal):Play()
+        local trackTween = TweenService:Create(control.Track, Theme.tweenFast, trackGoal)
+        if control.Candy and not on then
+            -- Keep the stripes while the track fades to grey, then drop them.
+            trackTween.Completed:Connect(function()
+                if not control.Value then control.Candy.Enabled = false end
+            end)
+        end
+        trackTween:Play()
         TweenService:Create(control.Knob, Theme.tweenSpring, knobGoal):Play()
         TweenService:Create(control.TrackStroke, Theme.tweenFast, trackStrokeGoal):Play()
         TweenService:Create(control.Outline, Theme.tweenMed, outlineGoal):Play()
@@ -424,6 +453,7 @@ local function makeToggle(self, parent, options)
         BackgroundColor3 = Theme.toggleOff, BorderSizePixel = 0,
     }, card)
     corner(track, UDim.new(1, 0))
+    local candy = Theme.candyToggles and create("UIGradient", { Color = candyStripes(6), Rotation = 35, Enabled = false }, track) or nil
     local trackStroke = stroke(track, Theme.border, 1, 0.9)
     local knob = create("Frame", {
         Size = UDim2.new(0, Theme.knobSz, 0, Theme.knobSz),
@@ -439,7 +469,7 @@ local function makeToggle(self, parent, options)
     ripple(self, button, 10)
     local control = {
         Frame = card, Track = track, TrackStroke = trackStroke,
-        Knob = knob, KnobScale = knobScale, Outline = outline,
+        Knob = knob, KnobScale = knobScale, Outline = outline, Candy = candy,
     }
     setToggle(control, options.Value, true)
     connect(self, button.Activated, function()
@@ -862,28 +892,81 @@ local function buildWindow(self)
             { 0.10, 0.36, 0, 0.022, 0.010, 0.45 }, { 0.33, 0.12, 0, 0.025, 0.012, 0.55 },
             { 0.52, 0.44, 0, 0.020, 0.010, 0.50 }, { 0.66, 0.80, 0, 0.027, 0.014, 0.45 },
             { 0.86, 0.06, 0, 0.023, 0.011, 0.55 }, { 0.96, 0.66, 0, 0.021, 0.012, 0.50 },
+            { 0.62, 0.26, 14, 0.033, 0.019, 0.36 }, { 0.04, 0.78, 0, 0.024, 0.011, 0.50 },
+            { 0.42, 0.94, 0, 0.026, 0.013, 0.48 }, { 0.75, 0.40, 0, 0.022, 0.010, 0.52 },
         }
         for index, spec in ipairs(snowSpecs) do
             local flake
+            -- A little brighter than v19 so the snow reads on the dark glass.
+            local transparency = math.max(0.14, spec[6] - 0.1)
             if spec[3] > 0 then
                 flake = create("TextLabel", {
                     AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(spec[1], spec[2]),
                     Size = UDim2.fromOffset(spec[3] + 6, spec[3] + 6), BackgroundTransparency = 1,
                     BorderSizePixel = 0, FontFace = Fonts.Regular, Text = "❄",
-                    TextSize = spec[3], TextColor3 = Theme.snow, TextTransparency = spec[6], ZIndex = 2,
+                    TextSize = spec[3], TextColor3 = Theme.snow, TextTransparency = transparency, ZIndex = 2,
                 }, view.SnowLayer)
             else
                 local dotSize = 3 + index % 3
                 flake = create("Frame", {
                     AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(spec[1], spec[2]),
                     Size = UDim2.fromOffset(dotSize, dotSize), BackgroundColor3 = Theme.snow,
-                    BackgroundTransparency = spec[6], BorderSizePixel = 0, ZIndex = 2,
+                    BackgroundTransparency = transparency, BorderSizePixel = 0, ZIndex = 2,
                 }, view.SnowLayer)
                 corner(flake, UDim.new(1, 0))
             end
             view.Snowflakes[index] = {
                 Object = flake, X = spec[1], Y = spec[2], Speed = spec[4], Sway = spec[5],
                 Spin = spec[3] > 0, Phase = index * 0.83,
+            }
+        end
+    end
+
+    -- Snow piled along the bottom edge; content draws above it (ZIndex 3).
+    if Theme.snowDrift then
+        local drifts = {
+            { 0.12, 58, 16, 0.80 }, { 0.27, 74, 20, 0.84 }, { 0.43, 54, 14, 0.80 }, { 0.58, 80, 22, 0.85 },
+            { 0.74, 60, 16, 0.81 }, { 0.88, 50, 14, 0.83 },
+        }
+        for _, drift in ipairs(drifts) do
+            local mound = create("Frame", {
+                Name = "SnowDrift", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(drift[1], 0, 1, 2),
+                Size = UDim2.fromOffset(drift[2], drift[3]), BackgroundColor3 = Theme.snow,
+                BackgroundTransparency = drift[4], BorderSizePixel = 0, ZIndex = 2,
+            }, view.SnowLayer)
+            corner(mound, UDim.new(1, 0))
+        end
+    end
+
+    -- A string of Christmas lights along the top edge; the bulbs twinkle in wireWindow.
+    view.Lights = {}
+    if Theme.christmasLights then
+        local garland = create("Frame", {
+            Name = "ChristmasLights", Size = UDim2.new(1, -36, 0, 12), Position = UDim2.new(0, 18, 0, 0),
+            BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 3,
+        }, view.Window)
+        create("Frame", {
+            Name = "Wire", Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, 1),
+            BackgroundColor3 = Color3.fromRGB(52, 98, 68), BorderSizePixel = 0, ZIndex = 3,
+        }, garland)
+        local count = self.VerticalLayout and 16 or 14
+        for index = 1, count do
+            local color = Theme.lightColors[(index - 1) % #Theme.lightColors + 1]
+            local drop = index % 2 == 0 and 2 or 0
+            local x = (index - 0.5) / count
+            create("Frame", {
+                Name = "Socket", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(x, 0, 0, 1),
+                Size = UDim2.fromOffset(2, drop + 2), BackgroundColor3 = Color3.fromRGB(52, 98, 68),
+                BorderSizePixel = 0, ZIndex = 3,
+            }, garland)
+            local bulb = create("Frame", {
+                Name = "Bulb", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(x, 0, 0, 2 + drop),
+                Size = UDim2.fromOffset(5, 7), BackgroundColor3 = color, BorderSizePixel = 0, ZIndex = 3,
+            }, garland)
+            corner(bulb, UDim.new(1, 0))
+            view.Lights[index] = {
+                Bulb = bulb, Glow = stroke(bulb, color, 2, 0.45),
+                Phase = index * 1.9, Rate = 1.6 + (index % 3) * 0.55,
             }
         end
     end
@@ -927,7 +1010,15 @@ local function buildWindow(self)
         BackgroundTransparency = 1, BorderSizePixel = 0, Image = Theme.logoAsset,
         ScaleType = Enum.ScaleType.Fit, ZIndex = 7,
     }, mark)
-    makeText(view.Header, UiLib.Name, {
+    -- Snow resting on the logo tile.
+    for _, cap in ipairs({ { 0.24, 13, 7 }, { 0.52, 17, 8 }, { 0.8, 12, 6 } }) do
+        local blob = create("Frame", {
+            Name = "SnowCap", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(cap[1], 0, 0, 1),
+            Size = UDim2.fromOffset(cap[2], cap[3]), BackgroundColor3 = Theme.snow, BorderSizePixel = 0, ZIndex = 8,
+        }, mark)
+        corner(blob, UDim.new(1, 0))
+    end
+    makeText(view.Header, UiLib.Name .. "  🎄", {
         Size = UDim2.new(0, 190, 0, 18), Position = UDim2.new(0, 52, 0, headerHeight / 2 - 17),
         FontFace = Fonts.SemiBold, TextSize = 15, ZIndex = 5,
     })
@@ -968,6 +1059,21 @@ local function buildWindow(self)
         Size = UDim2.new(1, -20, 0, 1), Position = UDim2.new(0, 10, 0, headerHeight + navHeight),
         BackgroundColor3 = Theme.border, BackgroundTransparency = 0.92, BorderSizePixel = 0, ZIndex = 4,
     }, view.Window)
+    if Theme.tinsel then
+        -- Red, gold and green tinsel under the tabs; its shimmer moves in wireWindow.
+        view.Divider.BackgroundTransparency = 0.35
+        view.Divider.Size = UDim2.new(1, -20, 0, 2)
+        view.Tinsel = create("UIGradient", {
+            Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Theme.accent), ColorSequenceKeypoint.new(0.25, Theme.gold),
+                ColorSequenceKeypoint.new(0.5, Theme.lightColors[3]), ColorSequenceKeypoint.new(0.75, Theme.gold),
+                ColorSequenceKeypoint.new(1, Theme.accent),
+            }),
+            Transparency = NumberSequence.new({
+                NumberSequenceKeypoint.new(0, 0.7), NumberSequenceKeypoint.new(0.5, 0.1), NumberSequenceKeypoint.new(1, 0.7),
+            }),
+        }, view.Divider)
+    end
     view.Content = create("Frame", {
         Position = UDim2.new(0, 0, 0, headerHeight + navHeight + 1),
         Size = UDim2.new(1, 0, 1, -(headerHeight + navHeight + 1)),
@@ -1144,6 +1250,12 @@ local function wireWindow(self)
             flake.Object.Position = UDim2.fromScale(flake.X + drift, flake.Y)
             if flake.Spin then flake.Object.Rotation = (now * 22 + flake.Phase * 40) % 360 end
         end
+        for _, light in ipairs(self.View.Lights or {}) do
+            local dim = 0.5 - 0.5 * math.sin(now * light.Rate + light.Phase)
+            light.Bulb.BackgroundTransparency = 0.5 * dim
+            light.Glow.Transparency = 0.3 + 0.65 * dim
+        end
+        if self.View.Tinsel then self.View.Tinsel.Offset = Vector2.new(math.sin(now * 0.7) * 0.4, 0) end
         self.View.Glow.Rotation = (now * 48) % 360
         if self.View.StatusHalo then
             local pulse = 0.5 + 0.5 * math.sin(now * 3.4)
@@ -1350,7 +1462,7 @@ local function buildAI(self)
         Text = "Listen to Announcements", Value = self.State.Listening ~= false, Order = 1, Callback = "ListeningChanged",
     })
     self.Controls.RevealNet = makeToggle(self, page, {
-        Text = "Reveal Net", Value = self.State.RevealNet ~= false, Order = 2, Callback = "RevealNetChanged",
+        Text = "Reveal Net (needs AI)", Value = self.State.RevealNet ~= false, Order = 2, Callback = "RevealNetChanged",
     })
     self.Controls.AIAnswers = makeToggle(self, page, {
         Text = "Use AI Answers", Value = self.State.AIAnswers, Order = 3, Callback = "AIAnswersChanged",
@@ -1366,7 +1478,7 @@ local function buildAI(self)
     self.Controls.MinSpaces = makeInput(self, page, {
         Text = "Min Spaces", Value = self.State.MinSpaces, Order = 6, Callback = "MinSpacesChanged",
     })
-    makeParagraph(page, "Dual AI + Reveal Net", "Gemini + GPT race each riddle. Reveal Net also reads revealed codes and recent messages. Auto Enter Code controls automatic claims; claimed or sold-out codes are skipped.", self.VerticalLayout and 84 or 96, 7)
+    makeParagraph(page, "Dual AI + Reveal Net", "Gemini + GPT race each riddle. Reveal Net reads revealed codes with the AI. With Use AI Answers off, only Code Is: and its parts are collected. Claimed or sold-out codes are skipped.", self.VerticalLayout and 84 or 96, 7)
 end
 
 local function buildLog(self)
