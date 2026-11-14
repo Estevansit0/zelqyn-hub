@@ -1,4 +1,4 @@
---v21 purchase nearest toggle · christmas lights · candy cane toggles · snow drifts · reveal net needs AI · dual AI
+--v22 fflag test button · purchase nearest toggle · christmas lights · candy cane toggles · snow drifts · reveal net needs AI · dual AI
 local cloneref = cloneref or function(object) return object end
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
@@ -1401,6 +1401,12 @@ local function buildHome(self)
     makeParagraph(page, "Optimizer", "Permanently removes heavy client-side effects, textures and non-player cosmetics for this server session. Rejoin to restore them.", 76, 8)
     local _, optimizerStatus = makeStatusCard(page, "Not optimized", 9)
     self.View.OptimizerStatus = optimizerStatus
+    self.Controls.FlagTest = makeButton(self, page, {
+        Text = "FFlag Test (Dragon x4)", Order = 10, Callback = "FlagTest", TextColor = Theme.accentText, Bold = true,
+    })
+    makeParagraph(page, "FFlag Test", "Redeems the sold-out code Dragon 4 times, waiting 5 s after each answer. Sold Out answers slower than 3.6 s mean this account is flagged.", 76, 11)
+    local _, flagTestStatus = makeStatusCard(page, "Not tested", 12)
+    self.View.FlagTestStatus = flagTestStatus
 end
 
 local function buildRules(self)
@@ -1929,6 +1935,11 @@ end
 function Controller:SetOptimizerStatus(text, color)
     if not self.View.OptimizerStatus then return end
     self.View.OptimizerStatus.Text, self.View.OptimizerStatus.TextColor3 = tostring(text or "Not optimized"), resolveTone(color, Theme.textMuted)
+end
+
+function Controller:SetFlagTestStatus(text, color)
+    if not self.View.FlagTestStatus then return end
+    self.View.FlagTestStatus.Text, self.View.FlagTestStatus.TextColor3 = tostring(text or "Not tested"), resolveTone(color, Theme.textMuted)
 end
 
 function Controller:SetOptimizerApplied(applied)
