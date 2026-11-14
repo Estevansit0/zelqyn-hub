@@ -1,4 +1,4 @@
---v20 christmas lights · candy cane toggles · snow drifts · reveal net needs AI · dual AI
+--v21 purchase nearest toggle · christmas lights · candy cane toggles · snow drifts · reveal net needs AI · dual AI
 local cloneref = cloneref or function(object) return object end
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
@@ -1554,8 +1554,11 @@ local function buildAutoBuy(self)
     self.Controls.AutoPurchase = makeToggle(self, page, {
         Text = "Auto Buy", Value = self.State.AutoPurchase, Order = 3, Callback = "AutoPurchaseChanged",
     })
-    makeParagraph(page, "Auto Buy", "Purchases the nearest brainrot at 10 studs or less only when its base Price is at or below the buy limit.", 76, 4)
-    local _, aaStatus = makeStatusCard(page, "Ready", 5)
+    self.Controls.PurchaseNearest = makeToggle(self, page, {
+        Text = "Purchase Nearest", Value = self.State.PurchaseNearest, Order = 4, Callback = "PurchaseNearestChanged",
+    })
+    makeParagraph(page, "Auto Buy", "Auto Buy purchases the nearest brainrot at 10 studs or less only when its base Price is at or below the buy limit. Purchase Nearest buys the nearest one at 10 studs or less at any price.", 96, 5)
+    local _, aaStatus = makeStatusCard(page, "Ready", 6)
     self.View.AAStatus = aaStatus
 end
 
@@ -1906,10 +1909,11 @@ function Controller:NotifyRedeem(code, status, message)
     return entry
 end
 
-function Controller:SetAAStates(anchorEnabled, purchaseEnabled, sellEnabled)
+function Controller:SetAAStates(anchorEnabled, purchaseEnabled, sellEnabled, nearestEnabled)
     if self.Controls.Anchor then self.Controls.Anchor:Set(anchorEnabled, false) end
     if self.Controls.AutoPurchase then self.Controls.AutoPurchase:Set(purchaseEnabled, false) end
     if self.Controls.AutoSell then self.Controls.AutoSell:Set(sellEnabled, false) end
+    if self.Controls.PurchaseNearest then self.Controls.PurchaseNearest:Set(nearestEnabled == true, false) end
 end
 
 function Controller:SetAAStatus(text, color)
