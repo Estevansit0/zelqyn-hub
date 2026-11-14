@@ -1404,7 +1404,7 @@ local function buildHome(self)
     self.Controls.FlagTest = makeButton(self, page, {
         Text = "FFlag Test (Dragon x4)", Order = 10, Callback = "FlagTest", TextColor = Theme.accentText, Bold = true,
     })
-    makeParagraph(page, "FFlag Test", "Redeems the sold-out code Dragon 4 times, waiting 5 s after each answer. Sold Out answers slower than 3.6 s mean this account is flagged.", 76, 11)
+    makeParagraph(page, "FFlag Test", "Redeems the sold-out code Dragon 4 times, waiting 7 s after each answer. Sold Out answers taking 1.5 s or more mean this account is flagged; game cooldowns are retried. Tested at 6 ms ping: not guaranteed to work or detect with ping above 60 ms.", 112, 11)
     local _, flagTestStatus = makeStatusCard(page, "Not tested", 12)
     self.View.FlagTestStatus = flagTestStatus
 end
