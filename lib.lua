@@ -1,4 +1,4 @@
---v30 horizontal christmas window · tabs/sections/elements api · search · toggle key · reopen button
+--v31 compact desktop/mobile profiles · horizontal christmas window · tabs/sections/elements api · search
 local cloneref = cloneref or function(object) return object end
 local TweenService = cloneref(game:GetService("TweenService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
@@ -7,7 +7,7 @@ local Players = cloneref(game:GetService("Players"))
 
 local Library = {
     Name = "Zelqyn Hub",
-    Version = "30",
+    Version = "31",
     IsTouch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled,
     Active = nil,
     Theme = {
@@ -18,7 +18,6 @@ local Library = {
         hover = Color3.fromRGB(42, 51, 49),
         sidebar = Color3.fromRGB(11, 15, 15),
         segment = Color3.fromRGB(17, 22, 21),
-        segmentActive = Color3.fromRGB(55, 65, 62),
         inputBg = Color3.fromRGB(10, 13, 13),
         border = Color3.fromRGB(255, 255, 255),
         windowTop = Color3.fromRGB(19, 23, 23),
@@ -54,9 +53,6 @@ local Library = {
         tweenSlide = TweenInfo.new(0.26, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
         tweenNoticeIn = TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
         tweenNoticeOut = TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
-        toggleW = 42,
-        toggleH = 22,
-        knobSz = 16,
         rippleAsset = "rbxassetid://266543268",
         backgroundAsset = "rbxassetid://130379359123488",
         backgroundTransparency = 0.94,
@@ -71,11 +67,18 @@ local Library = {
         candyToggles = true,
         candyWhite = Color3.fromRGB(255, 232, 236),
         tinsel = true,
-        headerHeight = 50,
-        desktopSize = Vector2.new(660, 440),
-        touchSize = Vector2.new(560, 350),
-        sidebarWidth = 168,
-        compactSidebarWidth = 54,
+    },
+    Profiles = {
+        Desktop = {
+            Size = Vector2.new(540, 370), Header = 40, Sidebar = 128, Tab = 32, TabGap = 4, Row = 34, RowDesc = 44,
+            Section = 34, Status = 30, Display = 62, Button = 32, Input = 24, Field = 28, ToggleW = 38, ToggleH = 20, Knob = 14,
+            Text = 13, Small = 11, Title = 14, HeaderButton = 26, Gap = 6, Pad = 8, Corner = 8, IconsOnly = false,
+        },
+        Touch = {
+            Size = Vector2.new(450, 290), Header = 38, Sidebar = 42, Tab = 32, TabGap = 4, Row = 32, RowDesc = 42,
+            Section = 32, Status = 28, Display = 58, Button = 30, Input = 24, Field = 28, ToggleW = 38, ToggleH = 20, Knob = 14,
+            Text = 12, Small = 10, Title = 13, HeaderButton = 26, Gap = 5, Pad = 7, Corner = 8, IconsOnly = true,
+        },
     },
 }
 
@@ -103,15 +106,13 @@ local function create(className, properties, parent)
 end
 
 local function corner(parent, radius)
-    return create("UICorner", { CornerRadius = radius or UDim.new(0, 10) }, parent)
+    return create("UICorner", { CornerRadius = radius or UDim.new(0, 8) }, parent)
 end
 
 local function stroke(parent, color, thickness, transparency)
     return create("UIStroke", {
-        Color = color or Theme.border,
-        Thickness = thickness or 1,
-        Transparency = transparency or Theme.borderTransparency,
-        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+        Color = color or Theme.border, Thickness = thickness or 1,
+        Transparency = transparency or Theme.borderTransparency, ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
     }, parent)
 end
 
@@ -130,7 +131,7 @@ end
 
 local function label(parent, value, properties)
     local values = {
-        Size = UDim2.new(1, -24, 1, 0), Position = UDim2.new(0, 12, 0, 0),
+        Size = UDim2.new(1, -20, 1, 0), Position = UDim2.new(0, 10, 0, 0),
         BackgroundTransparency = 1, FontFace = Fonts.Medium, TextSize = 13,
         TextColor3 = Theme.textPri, TextXAlignment = Enum.TextXAlignment.Left, Text = value or "",
     }
@@ -227,7 +228,7 @@ local function ripple(window, button, radius)
         Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
         BorderSizePixel = 0, ClipsDescendants = true, ZIndex = button.ZIndex,
     }, button)
-    corner(host, UDim.new(0, radius or 9))
+    corner(host, UDim.new(0, radius or 8))
     connect(window, button.MouseButton1Down, function(x, y)
         local absolute, size = button.AbsolutePosition, button.AbsoluteSize
         local localX = math.clamp((x or absolute.X + size.X / 2) - absolute.X, 0, size.X)
@@ -247,21 +248,21 @@ local function ripple(window, button, radius)
     end)
 end
 
-local function makePill(parent, value, tone, position, height, zIndex, withDot)
+local function makePill(parent, value, tone, position, height, zIndex, withDot, textSize)
     local pill = label(parent, value, {
         AnchorPoint = Vector2.new(1, 0.5), Position = position or UDim2.new(1, -10, 0.5, 0),
-        Size = UDim2.new(0, 0, 0, height or 20), AutomaticSize = Enum.AutomaticSize.X,
+        Size = UDim2.new(0, 0, 0, height or 18), AutomaticSize = Enum.AutomaticSize.X,
         BackgroundTransparency = 0.2, BackgroundColor3 = Theme.bg0,
-        FontFace = Fonts.SemiBold, TextSize = 10,
+        FontFace = Fonts.SemiBold, TextSize = textSize or 10,
         TextColor3 = withDot and Theme.textPri or (tone or Theme.textMuted),
         TextXAlignment = Enum.TextXAlignment.Center, ZIndex = zIndex or 4,
     })
     corner(pill, UDim.new(1, 0))
     stroke(pill, Theme.border, 1, 0.88)
-    padding(pill, withDot and 19 or 9, 9, 0, 0)
+    padding(pill, withDot and 17 or 8, 8, 0, 0)
     if withDot then
         local dot = create("Frame", {
-            Name = "Dot", AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, -12, 0.5, 0),
+            Name = "Dot", AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, -11, 0.5, 0),
             Size = UDim2.new(0, 6, 0, 6), BackgroundColor3 = tone or Theme.success,
             BorderSizePixel = 0, ZIndex = pill.ZIndex + 1,
         }, pill)
@@ -314,10 +315,6 @@ local function logColor(message)
     return Theme.textPri
 end
 
-local function windowBaseSize(window)
-    return Library.IsTouch and Theme.touchSize or (window.Options.Size or Theme.desktopSize)
-end
-
 function Window:_register(section, card, searchText)
     local entry = {
         Card = card, Section = section, Tab = section.Tab, Hidden = false,
@@ -342,12 +339,12 @@ end
 
 function Window:UpdateScale(instant)
     local viewport = viewportSize()
-    local base = windowBaseSize(self)
+    local base = self.BaseSize
     local fit = math.min((viewport.X - 16) / base.X, (viewport.Y - 16) / base.Y)
-    local preferred = Library.IsTouch and 1 or math.clamp(viewport.Y / 900, 0.72, 1)
-    local target = math.clamp(math.min(fit, preferred), 0.42, 1)
+    local preferred = Library.IsTouch and 1 or math.clamp(viewport.Y / 950, 0.85, 1.15)
+    local target = math.clamp(math.min(fit, preferred), 0.4, 1.15)
     self.ScaleValue = target
-    if self.View.NotificationScale then self.View.NotificationScale.Scale = Library.IsTouch and target or 1 end
+    if self.View.NotificationScale then self.View.NotificationScale.Scale = Library.IsTouch and math.min(target, 1) or 1 end
     if instant then
         self.View.Scale.Scale = target
     else
@@ -357,8 +354,7 @@ function Window:UpdateScale(instant)
 end
 
 function Window:_sizeFor(minimized)
-    local base = windowBaseSize(self)
-    return UDim2.new(0, base.X, 0, minimized and Theme.headerHeight or base.Y)
+    return UDim2.new(0, self.BaseSize.X, 0, minimized and self.M.Header or self.BaseSize.Y)
 end
 
 function Window:SetMinimized(value, instant)
@@ -414,7 +410,6 @@ function Window:SelectTab(target, instant)
         end
         other.TitleLabel.FontFace = active and Fonts.Bold or Fonts.SemiBold
     end
-    self.View.PageTitle.Text = tab.Title
     for _, dropdown in ipairs(self.Dropdowns) do dropdown:SetOpen(false) end
 end
 
@@ -455,8 +450,7 @@ function Window:_applySearch(query)
 end
 
 function Window:SetStatus(text, tone, badge)
-    local color = resolveTone(tone, Theme.success)
-    setPill(self.View.StatusPill, tostring(badge or text or "Online"), color)
+    setPill(self.View.StatusPill, tostring(badge or text or "Online"), resolveTone(tone, Theme.success))
 end
 
 function Window:SetSubtitle(text)
@@ -482,9 +476,9 @@ end
 
 local NoticeGlyphs = { success = "✓", warning = "!", error = "×", info = "i" }
 
-local function noticeOffscreen(window, anchorY)
+local function noticeOffscreen(window)
     local scale = window.View.NotificationScale and window.View.NotificationScale.Scale or 1
-    return UDim2.new(0, viewportSize().X / math.max(scale, 0.01), anchorY, 0)
+    return UDim2.new(0, viewportSize().X / math.max(scale, 0.01), 1, 0)
 end
 
 function Window:DismissNotification(entry)
@@ -498,7 +492,7 @@ function Window:DismissNotification(entry)
     local holder = entry.Holder
     if not holder or not holder.Parent then return end
     if self.Destroyed or not entry.Shown then holder:Destroy() return end
-    tween(entry.Card, Theme.tweenNoticeOut, { Position = noticeOffscreen(self, 1) })
+    tween(entry.Card, Theme.tweenNoticeOut, { Position = noticeOffscreen(self) })
     tween(holder, Theme.tweenNoticeOut, { Size = UDim2.new(1, 0, 0, -8) })
     task.delay(Theme.tweenNoticeOut.Time, function()
         if holder.Parent then holder:Destroy() end
@@ -508,16 +502,16 @@ end
 function Window:_notificationList()
     if self.View.Notifications then return self.View.Notifications end
     local list = create("Frame", {
-        Name = "Notifications", AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -16, 1, -16),
-        Size = UDim2.new(1, -32, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
+        Name = "Notifications", AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -14, 1, -14),
+        Size = UDim2.new(1, -28, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
         BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 100,
     }, self.View.Gui)
-    create("UISizeConstraint", { MaxSize = Vector2.new(340, math.huge) }, list)
+    create("UISizeConstraint", { MaxSize = Vector2.new(310, math.huge) }, list)
     create("UIListLayout", {
         Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder,
         HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Bottom,
     }, list)
-    self.View.NotificationScale = create("UIScale", { Scale = Library.IsTouch and (self.ScaleValue or 1) or 1 }, list)
+    self.View.NotificationScale = create("UIScale", { Scale = Library.IsTouch and math.min(self.ScaleValue or 1, 1) or 1 }, list)
     self.View.Notifications = list
     return list
 end
@@ -537,20 +531,19 @@ function Window:Notify(options)
     local content = tostring(options.Content or options.Message or "")
     if #content > 240 then content = content:sub(1, 237) .. "..." end
     self.NotificationOrder = self.NotificationOrder + 1
-
     local holder = create("Frame", {
         Name = "Notice", Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1, BorderSizePixel = 0,
         LayoutOrder = self.NotificationOrder,
     }, list)
     local card = create("Frame", {
-        AnchorPoint = Vector2.new(0, 1), Position = noticeOffscreen(self, 1),
+        AnchorPoint = Vector2.new(0, 1), Position = noticeOffscreen(self),
         Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
         BackgroundColor3 = Theme.bg1, BackgroundTransparency = 0.03, BorderSizePixel = 0, Active = true,
     }, holder)
-    corner(card, UDim.new(0, 12))
+    corner(card, UDim.new(0, 10))
     stroke(card, Theme.gold, 1, 0.75)
     local wash = create("Frame", { Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = tone, BorderSizePixel = 0, ZIndex = 1 }, card)
-    corner(wash, UDim.new(0, 12))
+    corner(wash, UDim.new(0, 10))
     create("UIGradient", {
         Transparency = NumberSequence.new({
             NumberSequenceKeypoint.new(0, 0.82), NumberSequenceKeypoint.new(0.5, 1), NumberSequenceKeypoint.new(1, 1),
@@ -559,55 +552,55 @@ function Window:Notify(options)
     local body = create("Frame", {
         Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 2,
     }, card)
-    padding(body, 12, 12, 12, 11)
-    create("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }, body)
+    padding(body, 11, 11, 10, 9)
+    create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, body)
     local row = create("Frame", {
         Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = 1, ZIndex = 2,
     }, body)
     local icon = create("Frame", {
-        Size = UDim2.new(0, 28, 0, 28), BackgroundColor3 = tone, BackgroundTransparency = 0.82, BorderSizePixel = 0, ZIndex = 3,
+        Size = UDim2.new(0, 24, 0, 24), BackgroundColor3 = tone, BackgroundTransparency = 0.82, BorderSizePixel = 0, ZIndex = 3,
     }, row)
     corner(icon, UDim.new(1, 0))
     stroke(icon, tone, 1, 0.55)
     label(icon, NoticeGlyphs[kind], {
-        Size = UDim2.new(1, 0, 1, 0), Position = UDim2.new(), FontFace = Fonts.Bold, TextSize = 14,
+        Size = UDim2.new(1, 0, 1, 0), Position = UDim2.new(), FontFace = Fonts.Bold, TextSize = 13,
         TextColor3 = tone, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 4,
     })
     local column = create("Frame", {
-        Position = UDim2.new(0, 40, 0, 0), Size = UDim2.new(1, -40, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
+        Position = UDim2.new(0, 34, 0, 0), Size = UDim2.new(1, -34, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
         BackgroundTransparency = 1, ZIndex = 3,
     }, row)
-    create("UIListLayout", { Padding = UDim.new(0, 5), SortOrder = Enum.SortOrder.LayoutOrder }, column)
-    local titleRow = create("Frame", { Size = UDim2.new(1, 0, 0, 18), BackgroundTransparency = 1, LayoutOrder = 1, ZIndex = 3 }, column)
+    create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }, column)
+    local titleRow = create("Frame", { Size = UDim2.new(1, 0, 0, 16), BackgroundTransparency = 1, LayoutOrder = 1, ZIndex = 3 }, column)
     label(titleRow, tostring(options.Title or Library.Name):sub(1, 100), {
-        Size = UDim2.new(1, -66, 1, 0), Position = UDim2.new(), FontFace = Fonts.SemiBold, TextSize = 13,
+        Size = UDim2.new(1, -60, 1, 0), Position = UDim2.new(), FontFace = Fonts.SemiBold, TextSize = 12,
         TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 4,
     })
     label(titleRow, os.date("%H:%M"), {
-        AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -24, 0, 0), Size = UDim2.new(0, 40, 1, 0),
+        AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -22, 0, 0), Size = UDim2.new(0, 36, 1, 0),
         TextSize = 10, TextColor3 = Theme.textDim, TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 4,
     })
     local close = create("TextButton", {
-        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 4, 0.5, 0), Size = UDim2.new(0, 22, 0, 22),
+        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 4, 0.5, 0), Size = UDim2.new(0, 20, 0, 20),
         BackgroundColor3 = Theme.hover, BackgroundTransparency = 1, BorderSizePixel = 0, AutoButtonColor = false,
-        Text = "×", FontFace = Fonts.Medium, TextSize = 16, TextColor3 = Theme.textMuted, ZIndex = 5,
+        Text = "×", FontFace = Fonts.Medium, TextSize = 15, TextColor3 = Theme.textMuted, ZIndex = 5,
     }, titleRow)
     corner(close, UDim.new(1, 0))
     if options.Code and tostring(options.Code) ~= "" then
         local chip = label(column, tostring(options.Code):sub(1, 60), {
-            Size = UDim2.new(0, 0, 0, 22), AutomaticSize = Enum.AutomaticSize.X, Position = UDim2.new(), LayoutOrder = 2,
-            BackgroundColor3 = Theme.bg0, BackgroundTransparency = 0.15, FontFace = Fonts.SemiBold, TextSize = 12,
+            Size = UDim2.new(0, 0, 0, 20), AutomaticSize = Enum.AutomaticSize.X, Position = UDim2.new(), LayoutOrder = 2,
+            BackgroundColor3 = Theme.bg0, BackgroundTransparency = 0.15, FontFace = Fonts.SemiBold, TextSize = 11,
             TextColor3 = tone, TextXAlignment = Enum.TextXAlignment.Center, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 4,
         })
         corner(chip, UDim.new(0, 6))
         stroke(chip, tone, 1, 0.7)
         padding(chip, 8, 8, 0, 0)
-        create("UISizeConstraint", { MaxSize = Vector2.new(250, 22) }, chip)
+        create("UISizeConstraint", { MaxSize = Vector2.new(230, 20) }, chip)
     end
     if content ~= "" then
         label(column, content, {
             Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Position = UDim2.new(), LayoutOrder = 3,
-            FontFace = Fonts.Regular, TextSize = 12, TextColor3 = Theme.textMuted, TextWrapped = true, RichText = false, ZIndex = 4,
+            FontFace = Fonts.Regular, TextSize = 11, TextColor3 = Theme.textMuted, TextWrapped = true, RichText = false, ZIndex = 4,
         })
     end
     local track = create("Frame", {
@@ -619,7 +612,6 @@ function Window:Notify(options)
         Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = tone, BackgroundTransparency = 0.1, BorderSizePixel = 0, ZIndex = 4,
     }, track)
     corner(fill, UDim.new(1, 0))
-
     local entry = { Card = card, Holder = holder, Key = key, Connections = {} }
     table.insert(self.Notifications, entry)
     if key then self.NotificationKeys[key] = entry end
@@ -671,6 +663,7 @@ end
 function Tab:Section(options)
     options = type(options) == "table" and options or { Title = tostring(options or "") }
     local window = self.Window
+    local M = window.M
     local section = setmetatable({
         Window = window, Tab = self, Entries = {}, Order = 0, Collapsed = false,
         SearchTitle = string.lower(tostring(options.Title or "")),
@@ -680,44 +673,44 @@ function Tab:Section(options)
         BackgroundColor3 = Theme.bg1, BackgroundTransparency = 0.28, BorderSizePixel = 0,
         LayoutOrder = #self.Sections + 1, ZIndex = 3,
     }, self.Page)
-    corner(frame, UDim.new(0, 12))
+    corner(frame, UDim.new(0, M.Corner + 2))
     stroke(frame, Theme.gold, 1, 0.84)
     local header = create("TextButton", {
-        Size = UDim2.new(1, 0, 0, 42), BackgroundTransparency = 1, AutoButtonColor = false, Text = "", ZIndex = 4,
+        Size = UDim2.new(1, 0, 0, M.Section), BackgroundTransparency = 1, AutoButtonColor = false, Text = "", ZIndex = 4,
     }, frame)
     local bar = create("Frame", {
-        Position = UDim2.new(0, 12, 0.5, -10), Size = UDim2.new(0, 3, 0, 20),
+        Position = UDim2.new(0, 10, 0.5, -8), Size = UDim2.new(0, 3, 0, 16),
         BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, ZIndex = 5,
     }, header)
     corner(bar, UDim.new(1, 0))
     create("UIGradient", { Color = ColorSequence.new(Theme.gold, Theme.accent), Rotation = 90 }, bar)
-    local titleX = 24
+    local titleX = 20
     if options.Icon then
         iconObject(header, options.Icon, {
-            Size = UDim2.fromOffset(20, 20), Position = UDim2.new(0, 24, 0.5, -10), TextSize = 15,
+            Size = UDim2.fromOffset(16, 16), Position = UDim2.new(0, 20, 0.5, -8), TextSize = M.Text,
             TextColor3 = Theme.gold, ZIndex = 5,
         })
-        titleX = 50
+        titleX = 41
     end
     label(header, tostring(options.Title or ""), {
-        Position = UDim2.new(0, titleX, 0, 0), Size = UDim2.new(1, -(titleX + 44), 1, 0),
-        FontFace = Fonts.Bold, TextSize = 14, TextColor3 = Theme.gold, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 5,
+        Position = UDim2.new(0, titleX, 0, 0), Size = UDim2.new(1, -(titleX + 36), 1, 0),
+        FontFace = Fonts.Bold, TextSize = M.Text, TextColor3 = Theme.gold, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 5,
     })
     local chevron = label(header, "▲", {
-        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, 0), Size = UDim2.fromOffset(18, 18),
-        FontFace = Fonts.Bold, TextSize = 11, TextColor3 = Theme.gold, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 5,
+        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), Size = UDim2.fromOffset(16, 16),
+        FontFace = Fonts.Bold, TextSize = 10, TextColor3 = Theme.gold, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 5,
     })
     chevron.Visible = options.Collapsible ~= false
     local divider = create("Frame", {
-        Position = UDim2.new(0, 12, 0, 42), Size = UDim2.new(1, -24, 0, 1),
+        Position = UDim2.new(0, 10, 0, M.Section), Size = UDim2.new(1, -20, 0, 1),
         BackgroundColor3 = Theme.gold, BackgroundTransparency = 0.82, BorderSizePixel = 0, ZIndex = 4,
     }, frame)
     local content = create("Frame", {
-        Position = UDim2.new(0, 0, 0, 43), Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
+        Position = UDim2.new(0, 0, 0, M.Section + 1), Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
         BackgroundTransparency = 1, ZIndex = 4,
     }, frame)
-    create("UIListLayout", { Padding = UDim.new(0, 7), SortOrder = Enum.SortOrder.LayoutOrder }, content)
-    padding(content, 10, 10, 9, 11)
+    create("UIListLayout", { Padding = UDim.new(0, M.Gap), SortOrder = Enum.SortOrder.LayoutOrder }, content)
+    padding(content, M.Pad, M.Pad, M.Pad, M.Pad + 1)
     section.Frame, section.Content, section.Divider, section.Chevron = frame, content, divider, chevron
     function section:SetCollapsed(collapsed, instant)
         self.Collapsed = collapsed == true
@@ -746,27 +739,29 @@ function Section:_nextOrder()
 end
 
 function Section:_card(height)
+    local M = self.Window.M
     local card = create("Frame", {
-        Size = UDim2.new(1, 0, 0, height or 40), BackgroundColor3 = Theme.bg2,
+        Size = UDim2.new(1, 0, 0, height or M.Row), BackgroundColor3 = Theme.bg2,
         BackgroundTransparency = Theme.cardTransparency, BorderSizePixel = 0, LayoutOrder = self:_nextOrder(), ZIndex = 4,
     }, self.Content)
-    corner(card, UDim.new(0, 9))
+    corner(card, UDim.new(0, M.Corner))
     stroke(card)
     return card
 end
 
 function Section:_titled(card, options, rightInset)
+    local M = self.Window.M
     local description = type(options.Description) == "string" and options.Description ~= "" and options.Description or nil
     local title = label(card, tostring(options.Title or ""), {
-        Position = UDim2.new(0, 12, 0, description and 7 or 0),
-        Size = UDim2.new(1, -(rightInset + 24), 0, description and 18 or card.Size.Y.Offset),
-        FontFace = Fonts.Medium, TextSize = 13, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 5,
+        Position = UDim2.new(0, 10, 0, description and 5 or 0),
+        Size = UDim2.new(1, -(rightInset + 20), 0, description and 17 or card.Size.Y.Offset),
+        FontFace = Fonts.Medium, TextSize = M.Text, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 5,
     })
     local descriptionLabel
     if description then
         descriptionLabel = label(card, description, {
-            Position = UDim2.new(0, 12, 0, 25), Size = UDim2.new(1, -(rightInset + 24), 0, 18),
-            FontFace = Fonts.Regular, TextSize = 11, TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 5,
+            Position = UDim2.new(0, 10, 0, 22), Size = UDim2.new(1, -(rightInset + 20), 0, 15),
+            FontFace = Fonts.Regular, TextSize = M.Small, TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 5,
         })
     end
     return title, descriptionLabel
@@ -782,13 +777,17 @@ local function elementBase(entry, card)
     }
 end
 
+local function hasDescription(options)
+    return type(options.Description) == "string" and options.Description ~= ""
+end
+
 local function setToggleVisual(control, enabled, instant)
     control.Value = enabled == true
     local on = control.Value
     local trackColor = on and (control.Candy and Color3.new(1, 1, 1) or Theme.toggleOn) or Theme.toggleOff
     if control.Candy and (on or instant) then control.Candy.Enabled = on end
-    local knobPosition = on and UDim2.new(0, Theme.toggleW - Theme.knobSz - 3, 0.5, -Theme.knobSz / 2)
-        or UDim2.new(0, 3, 0.5, -Theme.knobSz / 2)
+    local knobPosition = on and UDim2.new(0, control.TrackWidth - control.KnobSize - 3, 0.5, -control.KnobSize / 2)
+        or UDim2.new(0, 3, 0.5, -control.KnobSize / 2)
     local outlineColor = on and Theme.accent or Theme.border
     local outlineTransparency = on and 0.7 or Theme.borderTransparency
     if instant then
@@ -811,29 +810,30 @@ end
 
 function Section:Toggle(options)
     local window = self.Window
-    local hasDescription = type(options.Description) == "string" and options.Description ~= ""
-    local card = self:_card(hasDescription and 52 or 40)
-    self:_titled(card, options, Theme.toggleW + 10)
+    local M = window.M
+    local card = self:_card(hasDescription(options) and M.RowDesc or M.Row)
+    self:_titled(card, options, M.ToggleW + 8)
     local track = create("Frame", {
-        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0),
-        Size = UDim2.new(0, Theme.toggleW, 0, Theme.toggleH), BackgroundColor3 = Theme.toggleOff, BorderSizePixel = 0, ZIndex = 5,
+        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0),
+        Size = UDim2.new(0, M.ToggleW, 0, M.ToggleH), BackgroundColor3 = Theme.toggleOff, BorderSizePixel = 0, ZIndex = 5,
     }, card)
     corner(track, UDim.new(1, 0))
     local candy = Theme.candyToggles and create("UIGradient", { Color = candyStripes(6), Rotation = 35, Enabled = false }, track) or nil
     stroke(track, Theme.border, 1, 0.9)
     local knob = create("Frame", {
-        Size = UDim2.new(0, Theme.knobSz, 0, Theme.knobSz), BackgroundColor3 = Theme.knob, BorderSizePixel = 0, ZIndex = 6,
+        Size = UDim2.new(0, M.Knob, 0, M.Knob), BackgroundColor3 = Theme.knob, BorderSizePixel = 0, ZIndex = 6,
     }, track)
     corner(knob, UDim.new(1, 0))
     stroke(knob, Color3.new(0, 0, 0), 1, 0.82)
     local button = create("TextButton", {
         Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, AutoButtonColor = false, Text = "", ZIndex = 7,
     }, card)
-    ripple(window, button, 9)
+    ripple(window, button, M.Corner)
     local entry = window:_register(self, card, tostring(options.Title or "") .. " " .. tostring(options.Description or ""))
     local control = elementBase(entry, card)
     control.Track, control.Knob, control.KnobScale = track, knob, create("UIScale", {}, knob)
     control.Outline, control.Candy = card:FindFirstChildOfClass("UIStroke"), candy
+    control.TrackWidth, control.KnobSize = M.ToggleW, M.Knob
     setToggleVisual(control, options.Value, true)
     function control:Set(value, fire)
         setToggleVisual(self, value, false)
@@ -846,14 +846,15 @@ function Section:Toggle(options)
 end
 
 local function buttonCard(window, parent, options, order)
+    local M = window.M
     local variant = options.Variant or (options.Primary and "primary") or "default"
     local primary = variant == "primary"
     local card = create("Frame", {
-        Size = options.Size or UDim2.new(1, 0, 0, options.Height or 40),
+        Size = options.Size or UDim2.new(1, 0, 0, options.Height or M.Button),
         Position = options.Position or UDim2.new(), BackgroundColor3 = primary and Color3.new(1, 1, 1) or Theme.bg2,
         BackgroundTransparency = primary and 0 or Theme.cardTransparency, BorderSizePixel = 0, LayoutOrder = order or 0, ZIndex = 4,
     }, parent)
-    corner(card, UDim.new(0, 9))
+    corner(card, UDim.new(0, M.Corner))
     local outline = stroke(card, primary and Theme.gold or Theme.border, 1, primary and 0.45 or Theme.borderTransparency)
     if primary then
         create("UIGradient", { Color = ColorSequence.new(Theme.accentHover, Theme.accentDeep), Rotation = 90 }, card)
@@ -869,13 +870,13 @@ local function buttonCard(window, parent, options, order)
     }
     local button = create("TextButton", {
         Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, AutoButtonColor = false,
-        FontFace = Fonts.SemiBold, TextSize = options.TextSize or 13, TextColor3 = control.RestText,
+        FontFace = Fonts.SemiBold, TextSize = options.TextSize or (M.Text - 1), TextColor3 = control.RestText,
         Text = tostring(options.Title or ""), TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 6,
     }, card)
-    padding(button, 8, 8, 0, 0)
+    padding(button, 6, 6, 0, 0)
     control.Button = button
     local scale = create("UIScale", {}, button)
-    ripple(window, button, 9)
+    ripple(window, button, M.Corner)
     local hoverColor = primary and Color3.new(1, 1, 1) or Theme.hover
     connect(window, button.MouseEnter, function()
         if not control.Enabled then return end
@@ -902,7 +903,7 @@ local function buttonCard(window, parent, options, order)
     end
     function control:SetEnabled(enabled)
         self.Enabled = enabled ~= false
-        self.Button.Active, self.Button.AutoButtonColor = self.Enabled, false
+        self.Button.Active = self.Enabled
         self.Button.TextTransparency = self.Enabled and 0 or 0.35
     end
     return control
@@ -912,17 +913,17 @@ function Section:Button(options)
     local window = self.Window
     local control = buttonCard(window, self.Content, options, self:_nextOrder())
     local entry = window:_register(self, control.Frame, options.Title)
-    local base = elementBase(entry, control.Frame)
-    control.SetVisible = base.SetVisible
+    control.SetVisible = elementBase(entry, control.Frame).SetVisible
     return control
 end
 
 function Section:Buttons(list)
     local window = self.Window
+    local M = window.M
     local row = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 40), BackgroundTransparency = 1, LayoutOrder = self:_nextOrder(), ZIndex = 4,
+        Size = UDim2.new(1, 0, 0, M.Button), BackgroundTransparency = 1, LayoutOrder = self:_nextOrder(), ZIndex = 4,
     }, self.Content)
-    local controls, titles, count, gap = {}, {}, #list, 6
+    local controls, titles, count, gap = {}, {}, #list, M.Gap
     for index, options in ipairs(list) do
         options.Size = UDim2.new(1 / count, -gap * (count - 1) / count, 1, 0)
         options.Position = UDim2.new((index - 1) / count, (index - 1) * gap / count, 0, 0)
@@ -936,24 +937,26 @@ function Section:Buttons(list)
 end
 
 local function inputField(window, parent, options, position, size)
+    local M = window.M
     local field = create("Frame", {
         AnchorPoint = options.Anchor or Vector2.new(), Position = position, Size = size,
         BackgroundColor3 = Theme.inputBg, BackgroundTransparency = Theme.inputTransparency, BorderSizePixel = 0,
         ClipsDescendants = true, ZIndex = 5,
     }, parent)
-    corner(field, UDim.new(0, 8))
+    corner(field, UDim.new(0, M.Corner - 2))
     local outline = stroke(field, Theme.border, 1, 0.9)
     local box = create("TextBox", {
-        Position = UDim2.new(0, 9, 0, 0), Size = UDim2.new(1, -18, 1, 0), BackgroundTransparency = 1, BorderSizePixel = 0,
+        Position = UDim2.new(0, 8, 0, 0), Size = UDim2.new(1, -16, 1, 0), BackgroundTransparency = 1, BorderSizePixel = 0,
         ClearTextOnFocus = false, MultiLine = options.MultiLine == true, TextWrapped = options.MultiLine == true,
-        FontFace = Fonts.Medium, TextSize = options.TextSize or 13, TextColor3 = Theme.textPri,
+        FontFace = Fonts.Medium, TextSize = options.TextSize or (M.Text - 1), TextColor3 = Theme.textPri,
         PlaceholderText = tostring(options.Placeholder or ""), PlaceholderColor3 = Theme.textDim,
         TextXAlignment = options.Align or Enum.TextXAlignment.Left,
         TextYAlignment = options.MultiLine and Enum.TextYAlignment.Top or Enum.TextYAlignment.Center,
         Text = tostring(options.Value or ""), ClipsDescendants = true, ZIndex = 6,
     }, field)
-    if options.MultiLine then padding(box, 0, 0, 8, 8) end
-    if not options.MultiLine then
+    if options.MultiLine then
+        padding(box, 0, 0, 6, 6)
+    else
         box.TextTruncate = Enum.TextTruncate.AtEnd
         connect(window, box.Focused, function() box.TextTruncate = Enum.TextTruncate.None end)
         connect(window, box.FocusLost, function() box.TextTruncate = Enum.TextTruncate.AtEnd end)
@@ -969,22 +972,27 @@ end
 
 function Section:Input(options)
     local window = self.Window
+    local M = window.M
     local stacked = options.Stacked == true
-    local hasDescription = type(options.Description) == "string" and options.Description ~= ""
-    local width = options.Width or 130
-    local card = self:_card(stacked and (hasDescription and 88 or 76) or (hasDescription and 52 or 40))
+    local described = hasDescription(options)
+    local width = options.Width or 120
     local box
+    local card
     if stacked then
+        local top = described and 42 or 28
+        card = self:_card(top + M.Field + 8)
         self:_titled(card, { Title = options.Title, Description = options.Description }, 0)
         for _, child in ipairs(card:GetChildren()) do
-            if child:IsA("TextLabel") then child.Size = UDim2.new(1, -24, 0, hasDescription and 18 or 34) end
+            if child:IsA("TextLabel") and child.Text == tostring(options.Title or "") and not described then
+                child.Size = UDim2.new(1, -20, 0, 28)
+            end
         end
-        local top = hasDescription and 48 or 34
-        box = select(2, inputField(window, card, options, UDim2.new(0, 10, 0, top), UDim2.new(1, -20, 0, 32)))
+        box = select(2, inputField(window, card, options, UDim2.new(0, 8, 0, top), UDim2.new(1, -16, 0, M.Field)))
     else
-        self:_titled(card, options, width + 8)
+        card = self:_card(described and M.RowDesc or M.Row)
+        self:_titled(card, options, width + 6)
         options.Anchor = Vector2.new(1, 0.5)
-        box = select(2, inputField(window, card, options, UDim2.new(1, -10, 0.5, 0), UDim2.new(0, width, 0, 28)))
+        box = select(2, inputField(window, card, options, UDim2.new(1, -8, 0.5, 0), UDim2.new(0, width, 0, M.Input)))
         box.TextXAlignment = options.Align or Enum.TextXAlignment.Center
     end
     local entry = window:_register(self, card, tostring(options.Title or "") .. " " .. tostring(options.Description or ""))
@@ -1006,17 +1014,18 @@ end
 
 function Section:TextArea(options)
     local window = self.Window
-    local height = options.Height or 96
-    local hasTitle = options.Title and tostring(options.Title) ~= ""
-    local card = self:_card(height + (hasTitle and 40 or 18))
-    if hasTitle then
+    local M = window.M
+    local height = options.Height or 72
+    local titled = options.Title and tostring(options.Title) ~= ""
+    local card = self:_card(height + (titled and 36 or 16))
+    if titled then
         label(card, tostring(options.Title), {
-            Position = UDim2.new(0, 12, 0, 0), Size = UDim2.new(1, -24, 0, 32),
-            FontFace = Fonts.SemiBold, TextSize = 12, ZIndex = 5,
+            Position = UDim2.new(0, 10, 0, 0), Size = UDim2.new(1, -20, 0, 28),
+            FontFace = Fonts.SemiBold, TextSize = M.Text - 1, ZIndex = 5,
         })
     end
     options.MultiLine = true
-    local _, box = inputField(window, card, options, UDim2.new(0, 10, 0, hasTitle and 32 or 9), UDim2.new(1, -20, 0, height))
+    local _, box = inputField(window, card, options, UDim2.new(0, 8, 0, titled and 28 or 8), UDim2.new(1, -16, 0, height))
     local entry = window:_register(self, card, options.Title)
     local control = elementBase(entry, card)
     control.TextBox = box
@@ -1027,21 +1036,22 @@ end
 
 function Section:Segmented(options)
     local window = self.Window
+    local M = window.M
     local items = options.Options or { "Low", "Medium", "High" }
-    local width = options.Width or 190
-    local card = self:_card(40)
-    self:_titled(card, options, width + 8)
+    local width = options.Width or 168
+    local card = self:_card(M.Row)
+    self:_titled(card, options, width + 6)
     local frame = create("Frame", {
-        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -7, 0.5, 0), Size = UDim2.new(0, width, 0, 28),
+        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -6, 0.5, 0), Size = UDim2.new(0, width, 0, M.Row - 10),
         BackgroundColor3 = Theme.segment, BackgroundTransparency = 0.2, BorderSizePixel = 0, ZIndex = 5,
     }, card)
-    corner(frame, UDim.new(0, 9))
+    corner(frame, UDim.new(0, M.Corner))
     stroke(frame, Theme.border, 1, 0.9)
-    padding(frame, 3, 3, 3, 3)
+    padding(frame, 2, 2, 2, 2)
     local highlight = create("Frame", {
         Size = UDim2.new(1 / #items, -2, 1, 0), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, ZIndex = 6,
     }, frame)
-    corner(highlight, UDim.new(0, 7))
+    corner(highlight, UDim.new(0, M.Corner - 2))
     stroke(highlight, Theme.gold, 1, 0.55)
     create("UIGradient", { Color = ColorSequence.new(Theme.accentHover, Theme.accentDeep), Rotation = 90 }, highlight)
     local entry = window:_register(self, card, tostring(options.Title or "") .. " " .. table.concat(items, " "))
@@ -1063,7 +1073,7 @@ function Section:Segmented(options)
     for index, item in ipairs(items) do
         local button = create("TextButton", {
             Size = UDim2.new(1 / #items, -2, 1, 0), Position = UDim2.new((index - 1) / #items, 1, 0, 0),
-            BackgroundTransparency = 1, AutoButtonColor = false, FontFace = Fonts.Medium, TextSize = 12,
+            BackgroundTransparency = 1, AutoButtonColor = false, FontFace = Fonts.Medium, TextSize = M.Small + 1,
             TextColor3 = Theme.textMuted, Text = tostring(item), ZIndex = 7,
         }, frame)
         buttons[index] = button
@@ -1077,30 +1087,31 @@ end
 
 function Section:Dropdown(options)
     local window = self.Window
+    local M = window.M
     local items = {}
     for _, item in ipairs(options.Options or {}) do
         items[#items + 1] = type(item) == "table" and { Text = tostring(item.Text or item.Value), Value = item.Value }
             or { Text = tostring(item), Value = item }
     end
-    local width, rowHeight = options.Width or 150, 30
-    local card = self:_card(40)
+    local width, rowHeight = options.Width or 140, 26
+    local card = self:_card(M.Row)
     card.ClipsDescendants = true
-    self:_titled(card, options, width + 8)
+    self:_titled(card, options, width + 6)
     local head = create("TextButton", {
-        AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8, 0, 6), Size = UDim2.new(0, width, 0, 28),
+        AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -6, 0, (M.Row - M.Input) / 2), Size = UDim2.new(0, width, 0, M.Input),
         BackgroundColor3 = Theme.inputBg, BackgroundTransparency = Theme.inputTransparency, AutoButtonColor = false,
-        FontFace = Fonts.SemiBold, TextSize = 12, TextColor3 = Theme.gold, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 6,
+        FontFace = Fonts.SemiBold, TextSize = M.Small + 1, TextColor3 = Theme.gold, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 6,
     }, card)
-    corner(head, UDim.new(0, 8))
+    corner(head, UDim.new(0, M.Corner - 2))
     stroke(head, Theme.border, 1, 0.88)
     local menu = create("Frame", {
-        Position = UDim2.new(0, 10, 0, 42), Size = UDim2.new(1, -20, 0, #items * (rowHeight + 4)),
+        Position = UDim2.new(0, 8, 0, M.Row + 2), Size = UDim2.new(1, -16, 0, #items * (rowHeight + 4)),
         BackgroundTransparency = 1, Visible = false, ZIndex = 6,
     }, card)
     create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }, menu)
-    local entryTexts = {}
-    for _, item in ipairs(items) do entryTexts[#entryTexts + 1] = item.Text end
-    local entry = window:_register(self, card, tostring(options.Title or "") .. " " .. table.concat(entryTexts, " "))
+    local texts = {}
+    for _, item in ipairs(items) do texts[#texts + 1] = item.Text end
+    local entry = window:_register(self, card, tostring(options.Title or "") .. " " .. table.concat(texts, " "))
     local control = elementBase(entry, card)
     control.Open = false
     local optionButtons = {}
@@ -1118,7 +1129,7 @@ function Section:Dropdown(options)
             end
         end
         menu.Visible = self.Open
-        card.Size = UDim2.new(1, 0, 0, self.Open and 48 + #items * (rowHeight + 4) or 40)
+        card.Size = UDim2.new(1, 0, 0, self.Open and M.Row + 8 + #items * (rowHeight + 4) or M.Row)
         head.Text = display(self.Value) .. (self.Open and "  ▲" or "  ▼")
         for index, item in ipairs(items) do
             local button = optionButtons[index]
@@ -1136,10 +1147,10 @@ function Section:Dropdown(options)
     for index, item in ipairs(items) do
         local button = create("TextButton", {
             Size = UDim2.new(1, 0, 0, rowHeight), BackgroundColor3 = Theme.inputBg, BorderSizePixel = 0,
-            AutoButtonColor = false, FontFace = Fonts.Medium, TextSize = 12, TextColor3 = Theme.textPri,
+            AutoButtonColor = false, FontFace = Fonts.Medium, TextSize = M.Small + 1, TextColor3 = Theme.textPri,
             Text = item.Text, LayoutOrder = index, ZIndex = 7,
         }, menu)
-        corner(button, UDim.new(0, 7))
+        corner(button, UDim.new(0, M.Corner - 2))
         stroke(button, Theme.border, 1, 0.92)
         optionButtons[index] = button
         connect(window, button.Activated, function() control:Set(item.Value, true) end)
@@ -1154,18 +1165,19 @@ end
 
 function Section:Slider(options)
     local window = self.Window
+    local M = window.M
     local minimum, maximum = tonumber(options.Min) or 0, tonumber(options.Max) or 100
     local step = tonumber(options.Step) or 1
-    local card = self:_card(56)
+    local card = self:_card(M.Row + 14)
     label(card, tostring(options.Title or ""), {
-        Position = UDim2.new(0, 12, 0, 6), Size = UDim2.new(1, -90, 0, 20), FontFace = Fonts.Medium, TextSize = 13, ZIndex = 5,
+        Position = UDim2.new(0, 10, 0, 4), Size = UDim2.new(1, -80, 0, 18), FontFace = Fonts.Medium, TextSize = M.Text, ZIndex = 5,
     })
     local valueLabel = label(card, "", {
-        AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 6), Size = UDim2.new(0, 70, 0, 20),
-        FontFace = Fonts.SemiBold, TextSize = 12, TextColor3 = Theme.gold, TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 5,
+        AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 4), Size = UDim2.new(0, 64, 0, 18),
+        FontFace = Fonts.SemiBold, TextSize = M.Small + 1, TextColor3 = Theme.gold, TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 5,
     })
     local bar = create("Frame", {
-        Position = UDim2.new(0, 12, 0, 36), Size = UDim2.new(1, -24, 0, 6), BackgroundColor3 = Theme.toggleOff,
+        Position = UDim2.new(0, 10, 0, M.Row - 4), Size = UDim2.new(1, -20, 0, 6), BackgroundColor3 = Theme.toggleOff,
         BorderSizePixel = 0, ZIndex = 5,
     }, card)
     corner(bar, UDim.new(1, 0))
@@ -1173,13 +1185,13 @@ function Section:Slider(options)
     corner(fill, UDim.new(1, 0))
     create("UIGradient", { Color = candyStripes(8), Rotation = 0 }, fill)
     local knob = create("Frame", {
-        AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.fromOffset(14, 14),
+        AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.fromOffset(13, 13),
         BackgroundColor3 = Theme.knob, BorderSizePixel = 0, ZIndex = 7,
     }, bar)
     corner(knob, UDim.new(1, 0))
     stroke(knob, Theme.gold, 1, 0.4)
     local hit = create("TextButton", {
-        Position = UDim2.new(0, 0, 0, 26), Size = UDim2.new(1, 0, 0, 26), BackgroundTransparency = 1, Text = "", ZIndex = 8,
+        Position = UDim2.new(0, 0, 0, M.Row - 14), Size = UDim2.new(1, 0, 0, 24), BackgroundTransparency = 1, Text = "", ZIndex = 8,
     }, card)
     local entry = window:_register(self, card, options.Title)
     local control = elementBase(entry, card)
@@ -1223,21 +1235,22 @@ end
 
 function Section:Keybind(options)
     local window = self.Window
-    local card = self:_card(40)
-    self:_titled(card, options, 112)
+    local M = window.M
+    local card = self:_card(hasDescription(options) and M.RowDesc or M.Row)
+    self:_titled(card, options, 100)
     local keyButton = create("TextButton", {
-        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -42, 0.5, 0), Size = UDim2.new(0, 70, 0, 28),
+        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -38, 0.5, 0), Size = UDim2.new(0, 62, 0, M.Input),
         BackgroundColor3 = Theme.inputBg, BackgroundTransparency = Theme.inputTransparency, BorderSizePixel = 0,
-        AutoButtonColor = false, FontFace = Fonts.SemiBold, TextSize = 12, TextColor3 = Theme.gold, ZIndex = 6,
+        AutoButtonColor = false, FontFace = Fonts.SemiBold, TextSize = M.Small + 1, TextColor3 = Theme.gold, ZIndex = 6,
     }, card)
-    corner(keyButton, UDim.new(0, 8))
+    corner(keyButton, UDim.new(0, M.Corner - 2))
     stroke(keyButton, Theme.border, 1, 0.88)
     local reset = create("TextButton", {
-        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), Size = UDim2.new(0, 28, 0, 28),
+        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0), Size = UDim2.new(0, M.Input, 0, M.Input),
         BackgroundColor3 = Theme.inputBg, BackgroundTransparency = Theme.inputTransparency, BorderSizePixel = 0,
-        AutoButtonColor = false, FontFace = Fonts.SemiBold, TextSize = 15, TextColor3 = Theme.textMuted, Text = "×", ZIndex = 6,
+        AutoButtonColor = false, FontFace = Fonts.SemiBold, TextSize = 14, TextColor3 = Theme.textMuted, Text = "×", ZIndex = 6,
     }, card)
-    corner(reset, UDim.new(0, 8))
+    corner(reset, UDim.new(0, M.Corner - 2))
     stroke(reset, Theme.border, 1, 0.9)
     hoverBackground(window, keyButton, keyButton, Theme.inputBg)
     hoverBackground(window, reset, reset, Theme.inputBg)
@@ -1279,28 +1292,32 @@ end
 
 function Section:Paragraph(options)
     local window = self.Window
+    local M = window.M
     local card = create("Frame", {
         Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = Theme.bg3,
         BackgroundTransparency = 0.35, BorderSizePixel = 0, LayoutOrder = self:_nextOrder(), ZIndex = 4,
     }, self.Content)
-    corner(card, UDim.new(0, 9))
+    corner(card, UDim.new(0, M.Corner))
     stroke(card)
-    padding(card, 14, 12, 9, 10)
-    create("UIListLayout", { Padding = UDim.new(0, 3), SortOrder = Enum.SortOrder.LayoutOrder }, card)
+    padding(card, 11, 10, 7, 8)
+    create("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder }, card)
     local title = label(card, tostring(options.Title or ""), {
-        Position = UDim2.new(), Size = UDim2.new(1, 0, 0, 18), FontFace = Fonts.SemiBold, TextSize = 13,
-        TextColor3 = Theme.textPri, LayoutOrder = 1, ZIndex = 5,
+        Position = UDim2.new(), Size = UDim2.new(1, 0, 0, 16), FontFace = Fonts.SemiBold, TextSize = M.Text - 1,
+        LayoutOrder = 1, ZIndex = 5,
     })
     title.Visible = title.Text ~= ""
     local body = label(card, tostring(options.Content or ""), {
         Position = UDim2.new(), Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
-        FontFace = Fonts.Regular, TextSize = 12, TextColor3 = Theme.textMuted, TextWrapped = true,
+        FontFace = Fonts.Regular, TextSize = M.Small, TextColor3 = Theme.textMuted, TextWrapped = true,
         TextYAlignment = Enum.TextYAlignment.Top, LayoutOrder = 2, ZIndex = 5,
     })
     local entry = window:_register(self, card, tostring(options.Title or "") .. " " .. tostring(options.Content or ""))
     local control = elementBase(entry, card)
     function control:Set(newTitle, newContent)
-        if newTitle ~= nil then title.Text = tostring(newTitle); title.Visible = title.Text ~= "" end
+        if newTitle ~= nil then
+            title.Text = tostring(newTitle)
+            title.Visible = title.Text ~= ""
+        end
         if newContent ~= nil then body.Text = tostring(newContent) end
     end
     return control
@@ -1309,10 +1326,11 @@ end
 function Section:Status(options)
     options = type(options) == "table" and options or { Text = tostring(options or "") }
     local window = self.Window
-    local card = self:_card(36)
+    local M = window.M
+    local card = self:_card(M.Status)
     card.BackgroundColor3 = Theme.bg3
     local text = label(card, tostring(options.Text or ""), {
-        Size = UDim2.new(1, -24, 1, 0), FontFace = Fonts.SemiBold, TextSize = 12,
+        FontFace = Fonts.SemiBold, TextSize = M.Small + 1,
         TextColor3 = resolveTone(options.Tone, Theme.textMuted), TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 5,
     })
     local entry = window:_register(self, card, options.Title or options.Text)
@@ -1328,25 +1346,26 @@ end
 
 function Section:Display(options)
     local window = self.Window
-    local card = self:_card(76)
+    local M = window.M
+    local card = self:_card(M.Display)
     label(card, tostring(options.Title or ""), {
-        Position = UDim2.new(0, 12, 0, 6), Size = UDim2.new(1, -120, 0, 18),
-        FontFace = Fonts.SemiBold, TextSize = 11, TextColor3 = Theme.textMuted, ZIndex = 5,
+        Position = UDim2.new(0, 10, 0, 4), Size = UDim2.new(1, -110, 0, 16),
+        FontFace = Fonts.SemiBold, TextSize = M.Small, TextColor3 = Theme.textMuted, ZIndex = 5,
     })
-    local badge = makePill(card, tostring(options.Badge or ""), Theme.textDim, UDim2.new(1, -10, 0, 15), 18, 6, true)
+    local badge = makePill(card, tostring(options.Badge or ""), Theme.textDim, UDim2.new(1, -8, 0, 12), 16, 6, true)
     badge.Visible = options.Badge ~= nil
     local box = create("Frame", {
-        Position = UDim2.new(0, 10, 0, 28), Size = UDim2.new(1, -20, 0, 38), BackgroundColor3 = Theme.inputBg,
+        Position = UDim2.new(0, 8, 0, 23), Size = UDim2.new(1, -16, 0, M.Display - 31), BackgroundColor3 = Theme.inputBg,
         BackgroundTransparency = Theme.inputTransparency, BorderSizePixel = 0, ClipsDescendants = true, ZIndex = 5,
     }, card)
-    corner(box, UDim.new(0, 8))
+    corner(box, UDim.new(0, M.Corner - 2))
     stroke(box, Theme.border, 1, 0.92)
     local bar = create("Frame", {
-        Size = UDim2.new(0, 2, 1, -14), Position = UDim2.new(0, 8, 0, 7), BackgroundColor3 = Theme.accent, BorderSizePixel = 0, ZIndex = 6,
+        Size = UDim2.new(0, 2, 1, -12), Position = UDim2.new(0, 7, 0, 6), BackgroundColor3 = Theme.accent, BorderSizePixel = 0, ZIndex = 6,
     }, box)
     corner(bar, UDim.new(1, 0))
     local message = label(box, "", {
-        Size = UDim2.new(1, -28, 1, 0), Position = UDim2.new(0, 18, 0, 0), TextSize = 13,
+        Size = UDim2.new(1, -24, 1, 0), Position = UDim2.new(0, 15, 0, 0), TextSize = M.Text - 1,
         TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 6,
     })
     local entry = window:_register(self, card, options.Title)
@@ -1369,25 +1388,26 @@ end
 function Section:Log(options)
     options = options or {}
     local window = self.Window
-    local height = options.Height or 250
-    local card = self:_card(height + 40)
+    local M = window.M
+    local height = options.Height or 220
+    local card = self:_card(height + 34)
     label(card, tostring(options.Title or "Activity Log"), {
-        Position = UDim2.new(0, 12, 0, 0), Size = UDim2.new(1, -110, 0, 32), FontFace = Fonts.SemiBold, TextSize = 12, ZIndex = 5,
+        Position = UDim2.new(0, 10, 0, 0), Size = UDim2.new(1, -100, 0, 28), FontFace = Fonts.SemiBold, TextSize = M.Text - 1, ZIndex = 5,
     })
     local count = label(card, "0 lines", {
-        AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 0), Size = UDim2.new(0, 90, 0, 32),
-        TextSize = 11, TextColor3 = Theme.textDim, TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 5,
+        AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 0), Size = UDim2.new(0, 80, 0, 28),
+        TextSize = M.Small, TextColor3 = Theme.textDim, TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 5,
     })
     local scroll = create("ScrollingFrame", {
-        Position = UDim2.new(0, 8, 0, 32), Size = UDim2.new(1, -16, 0, height),
+        Position = UDim2.new(0, 6, 0, 28), Size = UDim2.new(1, -12, 0, height),
         BackgroundColor3 = Theme.bg0, BackgroundTransparency = 0.3, BorderSizePixel = 0,
         ScrollBarThickness = 3, ScrollBarImageColor3 = Theme.gold, ScrollBarImageTransparency = 0.55,
         AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ClipsDescendants = true, ZIndex = 5,
     }, card)
-    corner(scroll, UDim.new(0, 8))
+    corner(scroll, UDim.new(0, M.Corner - 2))
     stroke(scroll)
-    create("UIListLayout", { Padding = UDim.new(0, 3), SortOrder = Enum.SortOrder.LayoutOrder }, scroll)
-    padding(scroll, 9, 9, 7, 7)
+    create("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder }, scroll)
+    padding(scroll, 8, 8, 6, 6)
     local entry = window:_register(self, card, tostring(options.Title or "Activity Log"))
     local control = elementBase(entry, card)
     control.Labels, control.Max = {}, options.MaxLines or (Library.IsTouch and 80 or 140)
@@ -1401,7 +1421,7 @@ function Section:Log(options)
         local line = label(scroll, string.format('<font color="#%s">%s</font>   <font color="#%s">%s</font>',
             colorHex(Theme.textDim), escapeRichText(timestamp), colorHex(logColor(message)), escapeRichText(message)), {
             Size = UDim2.new(1, -4, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Position = UDim2.new(),
-            FontFace = Fonts.Medium, TextSize = 12, TextWrapped = true, RichText = true, LayoutOrder = order, ZIndex = 6,
+            FontFace = Fonts.Medium, TextSize = M.Small + 1, TextWrapped = true, RichText = true, LayoutOrder = order, ZIndex = 6,
         })
         table.insert(self.Labels, line)
         while #self.Labels > self.Max do
@@ -1429,14 +1449,15 @@ end
 
 function Window:Tab(options)
     options = type(options) == "table" and options or { Title = tostring(options or "") }
+    local M = self.M
     local index = #self.Tabs + 1
     local tab = setmetatable({ Window = self, Index = index, Title = tostring(options.Title or ("Tab " .. index)), Sections = {} }, Tab)
-    local compact = self.Compact
+    local iconsOnly = M.IconsOnly
     local button = create("TextButton", {
-        Size = UDim2.new(1, 0, 0, compact and 36 or 40), BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, M.Tab), BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 1,
         AutoButtonColor = false, Text = "", LayoutOrder = index, ZIndex = 5,
     }, self.View.TabList)
-    corner(button, UDim.new(0, 10))
+    corner(button, UDim.new(0, M.Corner))
     tab.Stroke = stroke(button, Theme.gold, 1, 1)
     tab.Fill = create("UIGradient", {
         Color = ColorSequence.new({
@@ -1446,17 +1467,17 @@ function Window:Tab(options)
         Rotation = 90, Enabled = false,
     }, button)
     tab.Bar = create("Frame", {
-        AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, -7, 0.5, 0), Size = UDim2.new(0, 3, 0.55, 0),
+        AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, -5, 0.5, 0), Size = UDim2.new(0, 3, 0, 16),
         BackgroundColor3 = Theme.gold, BorderSizePixel = 0, Visible = false, ZIndex = 6,
     }, button)
     corner(tab.Bar, UDim.new(1, 0))
     tab.IconLabel = iconObject(button, options.Icon or "•", {
-        Size = UDim2.fromOffset(22, 22), Position = compact and UDim2.new(0.5, -11, 0.5, -11) or UDim2.new(0, 12, 0.5, -11),
-        TextSize = 15, TextColor3 = Theme.textMuted, ZIndex = 6,
+        Size = UDim2.fromOffset(18, 18), Position = iconsOnly and UDim2.new(0.5, -9, 0.5, -9) or UDim2.new(0, 9, 0.5, -9),
+        TextSize = M.Text, TextColor3 = Theme.textMuted, ZIndex = 6,
     })
     tab.TitleLabel = label(button, tab.Title, {
-        Position = UDim2.new(0, 42, 0, 0), Size = UDim2.new(1, -48, 1, 0), FontFace = Fonts.SemiBold, TextSize = 13,
-        TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 6, Visible = not compact,
+        Position = UDim2.new(0, 32, 0, 0), Size = UDim2.new(1, -36, 1, 0), FontFace = Fonts.SemiBold, TextSize = M.Small + 1,
+        TextColor3 = Theme.textMuted, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 6, Visible = not iconsOnly,
     })
     tab.Button = button
     tab.Page = create("ScrollingFrame", {
@@ -1464,8 +1485,8 @@ function Window:Tab(options)
         ScrollBarThickness = 3, ScrollBarImageColor3 = Theme.gold, ScrollBarImageTransparency = 0.5,
         AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ScrollingDirection = Enum.ScrollingDirection.Y, ZIndex = 3,
     }, self.View.Pages)
-    create("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Center }, tab.Page)
-    padding(tab.Page, 2, 10, 2, 12)
+    create("UIListLayout", { Padding = UDim.new(0, M.Gap + 2), SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Center }, tab.Page)
+    padding(tab.Page, 1, 8, 1, 10)
     connect(self, button.Activated, function()
         if self.ActiveTab == tab then return end
         self:SelectTab(tab)
@@ -1483,12 +1504,13 @@ function Window:Tab(options)
 end
 
 local function headerButton(window, parent, text, order)
+    local M = window.M
     local button = create("TextButton", {
-        Size = UDim2.fromOffset(32, 32), BackgroundColor3 = Theme.bg2, BackgroundTransparency = 0.25,
-        BorderSizePixel = 0, AutoButtonColor = false, FontFace = Fonts.SemiBold, TextSize = 14,
+        Size = UDim2.fromOffset(M.HeaderButton, M.HeaderButton), BackgroundColor3 = Theme.bg2, BackgroundTransparency = 0.25,
+        BorderSizePixel = 0, AutoButtonColor = false, FontFace = Fonts.SemiBold, TextSize = M.Text,
         TextColor3 = Theme.gold, Text = text, LayoutOrder = order, ZIndex = 6,
     }, parent)
-    corner(button, UDim.new(0, 9))
+    corner(button, UDim.new(0, M.Corner))
     stroke(button, Theme.gold, 1, 0.7)
     hoverBackground(window, button, button, Theme.bg2, Theme.hover)
     return button
@@ -1500,7 +1522,7 @@ local function buildDecorations(window)
         local layer = create("Frame", {
             Name = name, Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = color or Theme.glow, BorderSizePixel = 0, ZIndex = 1,
         }, view.Window)
-        corner(layer, UDim.new(0, 14))
+        corner(layer, UDim.new(0, 12))
         create("UIGradient", { Rotation = rotation, Transparency = transparency }, layer)
         return layer
     end
@@ -1518,7 +1540,7 @@ local function buildDecorations(window)
         Image = Theme.backgroundAsset, ImageColor3 = Theme.glow, ImageTransparency = Theme.backgroundTransparency,
         ScaleType = Enum.ScaleType.Crop, ZIndex = 1,
     }, view.Window)
-    corner(view.Background, UDim.new(0, 14))
+    corner(view.Background, UDim.new(0, 12))
     view.SnowLayer = create("Frame", {
         Name = "Snowfall", Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, BorderSizePixel = 0,
         ClipsDescendants = true, ZIndex = 2,
@@ -1526,17 +1548,16 @@ local function buildDecorations(window)
     view.Snowflakes = {}
     if Theme.snowfall then
         local specs = {
-            { 0.04, -0.10, 16, 0.040, 0.020, 0.30 }, { 0.16, 0.22, 11, 0.028, 0.014, 0.50 },
-            { 0.28, -0.34, 19, 0.034, 0.024, 0.28 }, { 0.41, 0.05, 13, 0.044, 0.016, 0.42 },
-            { 0.55, -0.24, 17, 0.031, 0.022, 0.34 }, { 0.68, 0.30, 12, 0.039, 0.015, 0.48 },
-            { 0.82, 0.58, 14, 0.036, 0.018, 0.40 }, { 0.94, 0.70, 18, 0.042, 0.020, 0.32 },
-            { 0.36, 0.52, 15, 0.030, 0.017, 0.38 }, { 0.75, 0.86, 10, 0.026, 0.012, 0.55 },
+            { 0.04, -0.10, 14, 0.040, 0.020, 0.30 }, { 0.16, 0.22, 10, 0.028, 0.014, 0.50 },
+            { 0.28, -0.34, 16, 0.034, 0.024, 0.28 }, { 0.41, 0.05, 12, 0.044, 0.016, 0.42 },
+            { 0.55, -0.24, 15, 0.031, 0.022, 0.34 }, { 0.68, 0.30, 11, 0.039, 0.015, 0.48 },
+            { 0.82, 0.58, 13, 0.036, 0.018, 0.40 }, { 0.94, 0.70, 16, 0.042, 0.020, 0.32 },
+            { 0.36, 0.52, 13, 0.030, 0.017, 0.38 }, { 0.75, 0.86, 10, 0.026, 0.012, 0.55 },
             { 0.10, 0.36, 0, 0.022, 0.010, 0.45 }, { 0.23, 0.12, 0, 0.025, 0.012, 0.55 },
             { 0.47, 0.44, 0, 0.020, 0.010, 0.50 }, { 0.61, 0.80, 0, 0.027, 0.014, 0.45 },
             { 0.86, 0.06, 0, 0.023, 0.011, 0.55 }, { 0.97, 0.66, 0, 0.021, 0.012, 0.50 },
-            { 0.52, 0.26, 14, 0.033, 0.019, 0.36 }, { 0.06, 0.78, 0, 0.024, 0.011, 0.50 },
+            { 0.52, 0.26, 12, 0.033, 0.019, 0.36 }, { 0.06, 0.78, 0, 0.024, 0.011, 0.50 },
             { 0.32, 0.94, 0, 0.026, 0.013, 0.48 }, { 0.71, 0.40, 0, 0.022, 0.010, 0.52 },
-            { 0.89, 0.18, 12, 0.035, 0.016, 0.44 }, { 0.19, 0.64, 0, 0.023, 0.012, 0.52 },
         }
         for index, spec in ipairs(specs) do
             local transparency = math.max(0.14, spec[6] - 0.1)
@@ -1562,8 +1583,8 @@ local function buildDecorations(window)
     end
     if Theme.snowDrift then
         for _, drift in ipairs({
-            { 0.08, 70, 16, 0.82 }, { 0.2, 90, 20, 0.85 }, { 0.33, 64, 14, 0.81 }, { 0.47, 96, 22, 0.86 },
-            { 0.61, 72, 16, 0.82 }, { 0.74, 88, 18, 0.85 }, { 0.88, 66, 15, 0.82 },
+            { 0.08, 60, 14, 0.82 }, { 0.2, 78, 18, 0.85 }, { 0.33, 56, 12, 0.81 }, { 0.47, 84, 19, 0.86 },
+            { 0.61, 62, 14, 0.82 }, { 0.74, 76, 16, 0.85 }, { 0.88, 58, 13, 0.82 },
         }) do
             local mound = create("Frame", {
                 Name = "SnowDrift", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(drift[1], 0, 1, 2),
@@ -1576,14 +1597,14 @@ local function buildDecorations(window)
     view.Lights = {}
     if Theme.christmasLights then
         local garland = create("Frame", {
-            Name = "ChristmasLights", Size = UDim2.new(1, -36, 0, 12), Position = UDim2.new(0, 18, 0, 0),
+            Name = "ChristmasLights", Size = UDim2.new(1, -30, 0, 11), Position = UDim2.new(0, 15, 0, 0),
             BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 7,
         }, view.Window)
         create("Frame", {
             Name = "Wire", Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, 1),
             BackgroundColor3 = Color3.fromRGB(52, 98, 68), BorderSizePixel = 0, ZIndex = 7,
         }, garland)
-        local count = 22
+        local count = window.M.IconsOnly and 16 or 20
         for index = 1, count do
             local color = Theme.lightColors[(index - 1) % #Theme.lightColors + 1]
             local drop = index % 2 == 0 and 2 or 0
@@ -1594,7 +1615,7 @@ local function buildDecorations(window)
             }, garland)
             local bulb = create("Frame", {
                 Name = "Bulb", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(x, 0, 0, 2 + drop),
-                Size = UDim2.fromOffset(5, 7), BackgroundColor3 = color, BorderSizePixel = 0, ZIndex = 7,
+                Size = UDim2.fromOffset(4, 6), BackgroundColor3 = color, BorderSizePixel = 0, ZIndex = 7,
             }, garland)
             corner(bulb, UDim.new(1, 0))
             view.Lights[index] = { Bulb = bulb, Glow = stroke(bulb, color, 2, 0.45), Phase = index * 1.9, Rate = 1.6 + (index % 3) * 0.55 }
@@ -1618,8 +1639,8 @@ local function buildDecorations(window)
 end
 
 local function buildWindow(window)
-    local view, options = window.View, window.Options
-    local base = windowBaseSize(window)
+    local view, options, M = window.View, window.Options, window.M
+    local base = window.BaseSize
     local parent = guiParent()
     local guiName = tostring(options.GuiName or "ZelqynHubWindow")
     local old = parent:FindFirstChild(guiName)
@@ -1638,7 +1659,7 @@ local function buildWindow(window)
         Position = options.Position or UDim2.new(0.5, -base.X / 2, 0.5, -base.Y / 2),
         BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, Active = true, ClipsDescendants = true, ZIndex = 1,
     }, view.Gui)
-    corner(view.Window, UDim.new(0, 14))
+    corner(view.Window, UDim.new(0, 12))
     view.Scale = create("UIScale", { Scale = 0.92 }, view.Window)
     create("UIGradient", {
         Color = ColorSequence.new({
@@ -1650,8 +1671,8 @@ local function buildWindow(window)
     local function syncShadow()
         local position, size = view.Window.Position, view.Window.Size
         local scale = view.Scale.Scale
-        view.Shadow.Position = UDim2.new(position.X.Scale, position.X.Offset - 22, position.Y.Scale, position.Y.Offset - 14)
-        view.Shadow.Size = UDim2.new(0, size.X.Offset * scale + 44, 0, size.Y.Offset * scale + 52)
+        view.Shadow.Position = UDim2.new(position.X.Scale, position.X.Offset - 20, position.Y.Scale, position.Y.Offset - 12)
+        view.Shadow.Size = UDim2.new(0, size.X.Offset * scale + 40, 0, size.Y.Offset * scale + 46)
     end
     connect(window, view.Window:GetPropertyChangedSignal("Position"), syncShadow)
     connect(window, view.Window:GetPropertyChangedSignal("Size"), syncShadow)
@@ -1659,15 +1680,16 @@ local function buildWindow(window)
     syncShadow()
     buildDecorations(window)
 
-    local headerHeight = Theme.headerHeight
+    local headerHeight = M.Header
     view.Header = create("Frame", {
         Size = UDim2.new(1, 0, 0, headerHeight), BackgroundTransparency = 1, BorderSizePixel = 0, Active = true, ZIndex = 4,
     }, view.Window)
+    local markSize = headerHeight - 14
     local mark = create("Frame", {
-        Size = UDim2.fromOffset(32, 32), Position = UDim2.new(0, 14, 0.5, -15),
+        Size = UDim2.fromOffset(markSize, markSize), Position = UDim2.new(0, 11, 0.5, -markSize / 2 + 1),
         BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, ZIndex = 5,
     }, view.Header)
-    corner(mark, UDim.new(0, 9))
+    corner(mark, UDim.new(0, 7))
     stroke(mark, Theme.gold, 1, 0.35)
     create("UIGradient", { Color = ColorSequence.new(Theme.accentHover, Theme.accentDeep), Rotation = 135 }, mark)
     if type(options.Logo) == "string" and options.Logo:find("^rbxasset") then
@@ -1677,66 +1699,66 @@ local function buildWindow(window)
         }, mark)
     else
         label(mark, tostring(options.Logo or "Z"), {
-            Size = UDim2.new(1, 0, 1, 0), Position = UDim2.new(), FontFace = Fonts.Bold, TextSize = 17,
+            Size = UDim2.new(1, 0, 1, 0), Position = UDim2.new(), FontFace = Fonts.Bold, TextSize = M.Title,
             TextColor3 = Theme.activeTabText, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 6,
         })
     end
-    for _, cap in ipairs({ { 0.24, 13, 7 }, { 0.52, 17, 8 }, { 0.8, 12, 6 } }) do
+    for _, cap in ipairs({ { 0.24, 10, 6 }, { 0.52, 13, 7 }, { 0.8, 9, 5 } }) do
         local blob = create("Frame", {
             AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(cap[1], 0, 0, 1), Size = UDim2.fromOffset(cap[2], cap[3]),
             BackgroundColor3 = Theme.snow, BorderSizePixel = 0, ZIndex = 7,
         }, mark)
         corner(blob, UDim.new(1, 0))
     end
+    local titleX = 11 + markSize + 8
     view.Title = label(view.Header, string.upper(tostring(options.Title or Library.Name)) .. "  🎄", {
-        Position = UDim2.new(0, 56, 0, 0), Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X,
-        FontFace = Fonts.Bold, TextSize = 16, TextColor3 = Theme.gold, ZIndex = 5,
+        Position = UDim2.new(0, titleX, 0, 0), Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X,
+        FontFace = Fonts.Bold, TextSize = M.Title, TextColor3 = Theme.gold, ZIndex = 5,
     })
-    create("UISizeConstraint", { MaxSize = Vector2.new(260, headerHeight) }, view.Title)
     view.Subtitle = label(view.Header, tostring(options.Subtitle or ""), {
-        Position = UDim2.new(0, 0, 0.5, -11), Size = UDim2.new(0, 0, 0, 22), AutomaticSize = Enum.AutomaticSize.X,
-        BackgroundColor3 = Theme.bg0, BackgroundTransparency = 0.25, FontFace = Fonts.SemiBold, TextSize = 11,
+        Position = UDim2.new(0, titleX, 0.5, -9), Size = UDim2.new(0, 0, 0, 18), AutomaticSize = Enum.AutomaticSize.X,
+        BackgroundColor3 = Theme.bg0, BackgroundTransparency = 0.25, FontFace = Fonts.SemiBold, TextSize = M.Small - 1,
         TextColor3 = Theme.textMuted, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 5,
     })
     corner(view.Subtitle, UDim.new(1, 0))
     stroke(view.Subtitle, Theme.gold, 1, 0.75)
-    padding(view.Subtitle, 10, 10, 0, 0)
-    view.Subtitle.Visible = view.Subtitle.Text ~= "" and not Library.IsTouch
+    padding(view.Subtitle, 8, 8, 0, 0)
+    view.Subtitle.Visible = view.Subtitle.Text ~= "" and not M.IconsOnly
     local function placeSubtitle()
-        view.Subtitle.Position = UDim2.new(0, 56 + view.Title.AbsoluteSize.X / math.max(view.Scale.Scale, 0.01) + 10, 0.5, -11)
+        view.Subtitle.Position = UDim2.new(0, titleX + view.Title.AbsoluteSize.X / math.max(view.Scale.Scale, 0.01) + 8, 0.5, -9)
     end
     connect(window, view.Title:GetPropertyChangedSignal("AbsoluteSize"), placeSubtitle)
     task.defer(placeSubtitle)
 
     local controls = create("Frame", {
-        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.new(0, 0, 0, 32),
+        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -9, 0.5, 1), Size = UDim2.new(0, 0, 0, M.HeaderButton),
         AutomaticSize = Enum.AutomaticSize.X, BackgroundTransparency = 1, ZIndex = 5,
     }, view.Header)
     create("UIListLayout", {
-        FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder,
+        FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 5), SortOrder = Enum.SortOrder.LayoutOrder,
         VerticalAlignment = Enum.VerticalAlignment.Center, HorizontalAlignment = Enum.HorizontalAlignment.Right,
     }, controls)
-    view.StatusPill = makePill(controls, "Online", Theme.success, nil, 22, 6, true)
+    view.StatusPill = makePill(controls, "Online", Theme.success, nil, 18, 6, true, M.Small - 1)
     view.StatusPill.AnchorPoint = Vector2.new()
     view.StatusPill.LayoutOrder = 0
-    view.StatusPill.Visible = not Library.IsTouch
+    view.StatusPill.Visible = not M.IconsOnly
     view.SearchBox = create("TextBox", {
-        Size = UDim2.fromOffset(0, 32), BackgroundColor3 = Theme.inputBg, BackgroundTransparency = 0.15, BorderSizePixel = 0,
-        ClearTextOnFocus = false, FontFace = Fonts.Medium, TextSize = 13, TextColor3 = Theme.textPri, Text = "",
+        Size = UDim2.fromOffset(0, M.HeaderButton), BackgroundColor3 = Theme.inputBg, BackgroundTransparency = 0.15, BorderSizePixel = 0,
+        ClearTextOnFocus = false, FontFace = Fonts.Medium, TextSize = M.Text - 1, TextColor3 = Theme.textPri, Text = "",
         PlaceholderText = "Search...", PlaceholderColor3 = Theme.textDim, TextXAlignment = Enum.TextXAlignment.Left,
         Visible = false, LayoutOrder = 1, ClipsDescendants = true, ZIndex = 6,
     }, controls)
-    corner(view.SearchBox, UDim.new(0, 9))
+    corner(view.SearchBox, UDim.new(0, M.Corner))
     stroke(view.SearchBox, Theme.gold, 1, 0.6)
-    padding(view.SearchBox, 10, 10, 0, 0)
+    padding(view.SearchBox, 8, 8, 0, 0)
     view.SearchButton = headerButton(window, controls, "🔍", 2)
     if options.OnDiscord then view.DiscordButton = headerButton(window, controls, "💬", 3) end
     view.MinimizeButton = headerButton(window, controls, "—", 4)
     view.CloseButton = headerButton(window, controls, "×", 5)
-    view.CloseButton.TextSize = 18
+    view.CloseButton.TextSize = M.Title + 2
 
     view.Divider = create("Frame", {
-        Size = UDim2.new(1, -24, 0, 2), Position = UDim2.new(0, 12, 0, headerHeight),
+        Size = UDim2.new(1, -20, 0, 2), Position = UDim2.new(0, 10, 0, headerHeight),
         BackgroundColor3 = Theme.border, BackgroundTransparency = Theme.tinsel and 0.35 or 0.9, BorderSizePixel = 0, ZIndex = 4,
     }, view.Window)
     if Theme.tinsel then
@@ -1752,39 +1774,33 @@ local function buildWindow(window)
         }, view.Divider)
     end
 
-    local sidebarWidth = window.Compact and Theme.compactSidebarWidth or Theme.sidebarWidth
+    local sidebarWidth = M.Sidebar
     view.Body = create("Frame", {
         Position = UDim2.new(0, 0, 0, headerHeight + 2), Size = UDim2.new(1, 0, 1, -(headerHeight + 2)),
         BackgroundTransparency = 1, ZIndex = 3,
     }, view.Window)
     view.Sidebar = create("Frame", {
-        Position = UDim2.new(0, 10, 0, 10), Size = UDim2.new(0, sidebarWidth, 1, -20),
+        Position = UDim2.new(0, 8, 0, 8), Size = UDim2.new(0, sidebarWidth, 1, -16),
         BackgroundColor3 = Theme.sidebar, BackgroundTransparency = 0.3, BorderSizePixel = 0, ZIndex = 3,
     }, view.Body)
-    corner(view.Sidebar, UDim.new(0, 12))
+    corner(view.Sidebar, UDim.new(0, M.Corner + 2))
     stroke(view.Sidebar, Theme.gold, 1, 0.86)
     view.TabList = create("ScrollingFrame", {
         Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 0,
         AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ZIndex = 4,
     }, view.Sidebar)
-    create("UIListLayout", { Padding = UDim.new(0, window.Compact and 5 or 6), SortOrder = Enum.SortOrder.LayoutOrder }, view.TabList)
-    padding(view.TabList, window.Compact and 6 or 9, window.Compact and 6 or 9, window.Compact and 7 or 9, window.Compact and 7 or 9)
+    create("UIListLayout", { Padding = UDim.new(0, M.TabGap), SortOrder = Enum.SortOrder.LayoutOrder }, view.TabList)
+    padding(view.TabList, 6, 6, 7, 7)
     view.Content = create("Frame", {
-        Position = UDim2.new(0, sidebarWidth + 20, 0, 6), Size = UDim2.new(1, -(sidebarWidth + 28), 1, -12),
-        BackgroundTransparency = 1, ZIndex = 3,
+        Position = UDim2.new(0, sidebarWidth + 16, 0, 8), Size = UDim2.new(1, -(sidebarWidth + 22), 1, -14),
+        BackgroundTransparency = 1, ClipsDescendants = true, ZIndex = 3,
     }, view.Body)
-    view.PageTitle = label(view.Content, "", {
-        Position = UDim2.new(0, 4, 0, 0), Size = UDim2.new(1, -8, 0, 26), FontFace = Fonts.Bold, TextSize = 13,
-        TextColor3 = Theme.textMuted, Visible = false, ZIndex = 4,
-    })
-    view.Pages = create("Frame", {
-        Position = UDim2.new(0, 0, 0, 4), Size = UDim2.new(1, 0, 1, -4), BackgroundTransparency = 1, ClipsDescendants = true, ZIndex = 3,
-    }, view.Content)
+    view.Pages = view.Content
 
     view.Reopen = create("TextButton", {
-        AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 12), Size = UDim2.fromOffset(46, 46),
+        AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 10), Size = UDim2.fromOffset(40, 40),
         BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, AutoButtonColor = false, Text = "🎄",
-        FontFace = Fonts.Bold, TextSize = 22, Visible = false, ZIndex = 20,
+        FontFace = Fonts.Bold, TextSize = 19, Visible = false, ZIndex = 20,
     }, view.Gui)
     corner(view.Reopen, UDim.new(1, 0))
     stroke(view.Reopen, Theme.gold, 1.5, 0.2)
@@ -1792,15 +1808,15 @@ local function buildWindow(window)
 end
 
 local function wireWindow(window)
-    local view, options = window.View, window.Options
+    local view, options, M = window.View, window.Options, window.M
     connect(window, view.MinimizeButton.Activated, function() window:SetMinimized(not window.Minimized) end)
     connect(window, view.SearchButton.Activated, function()
         local open = not view.SearchBox.Visible
         view.SearchBox.Visible = open
-        view.Title.Visible = not (open and Library.IsTouch)
-        view.Subtitle.Visible = not open and view.Subtitle.Text ~= "" and not Library.IsTouch
-        view.StatusPill.Visible = not open and not Library.IsTouch
-        tween(view.SearchBox, Theme.tweenFast, { Size = UDim2.fromOffset(open and (Library.IsTouch and 130 or 170) or 0, 32) })
+        view.Title.Visible = not (open and M.IconsOnly)
+        view.Subtitle.Visible = not open and view.Subtitle.Text ~= "" and not M.IconsOnly
+        view.StatusPill.Visible = not open and not M.IconsOnly
+        tween(view.SearchBox, Theme.tweenFast, { Size = UDim2.fromOffset(open and (M.IconsOnly and 120 or 150) or 0, M.HeaderButton) })
         if open then
             if window.Minimized then window:SetMinimized(false) end
             view.SearchBox:CaptureFocus()
@@ -1897,11 +1913,13 @@ end
 function Library.CreateWindow(options)
     if Library.Active then Library.Active:Destroy() end
     options = type(options) == "table" and options or {}
+    local touchProfile = Library.IsTouch or options.Compact == true
+    local profile = touchProfile and Library.Profiles.Touch or Library.Profiles.Desktop
     local window = setmetatable({
         Options = options, Connections = {}, Tabs = {}, Dropdowns = {}, Searchable = {},
         Notifications = {}, NotificationKeys = {}, NotificationOrder = 0,
         View = {}, Minimized = false, Visible = true, Destroyed = false, SearchQuery = "",
-        Compact = Library.IsTouch or options.Compact == true,
+        M = profile, BaseSize = typeof(options.Size) == "Vector2" and options.Size or profile.Size,
     }, Window)
     Library.Active = window
     buildWindow(window)
